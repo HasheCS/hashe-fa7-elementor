@@ -48,6 +48,10 @@ See `hashe-fa7-elementor/FONT-AWESOME-LICENSE.txt` and [Font Awesome's license](
 
 The optional Pro picker catalogs include **icon identifiers only**, sourced from Font Awesome's public metadata endpoint. You are responsible for your Font Awesome Pro license and Kit configuration.
 
+## Editor reliability
+
+Version 1.0.1 preloads icon names into Elementor's editor configuration so all libraries initialize synchronously. This avoids a race in Elementor's asynchronous icon-library loading that could leave some 3,781-icon Pro tabs empty, even though their JSON files are available. On public-facing pages, catalogs are not inlined, avoiding unnecessary frontend weight.
+
 ## Development and testing
 
 The plugin does not create database tables or store credentials. It registers the additional tabs at runtime. The icon catalogs are static JSON and Elementor fetches only the selected tab's catalog.
