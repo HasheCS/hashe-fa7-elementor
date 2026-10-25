@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Hashe Font Awesome 7 Icon Library for Elementor
  * Description: Makes Font Awesome 7 Free icons available in Elementor's icon picker, with additional Pro catalogs when an existing Font Awesome Kit is configured.
- * Version: 1.0.2
+ * Version: 1.0.3
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Requires Plugins: elementor
@@ -147,7 +147,7 @@ function hashe_fa7_enqueue_editor_callback_guard() {
         'hashe-fa7-editor-callback-guard',
         plugins_url( 'assets/js/editor-callback-guard.js', __FILE__ ),
         array( 'elementor-editor' ),
-        '1.0.2',
+        '1.0.3',
         true
     );
 }

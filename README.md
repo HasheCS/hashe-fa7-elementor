@@ -50,7 +50,7 @@ The optional Pro picker catalogs include **icon identifiers only**, sourced from
 
 ## Editor reliability
 
-Version 1.0.2 restores the compact, per-category JSON loading used by v1.0.0 and adds a small editor-only callback guard. Elementor uses one mutable completion callback for several concurrent catalog requests; when switching categories quickly, a response can be delivered to the wrong tab. The guard associates Hashe library callbacks with their own library names without changing Elementor core.
+Version 1.0.3 fixes browser storage quota exhaustion. Elementor normally saves every normalized icon catalog into one `localStorage` entry named `elementor`; with sixteen 3,781-icon Pro catalogs, that can exceed Chrome's storage quota and leave categories blank. The editor-only guard now keeps Hashe catalogs in memory, removes only old Hashe catalog entries from Elementor storage, preserves unrelated Elementor settings, and continues to route simultaneous requests to the correct category. Normal per-category JSON fetching is preserved, with no Elementor core modifications. **v1.0.3 is undergoing logged-in editor validation on Amari before being marked stable.**
 
 **Note:** v1.0.1 was withdrawn from the stable releases because inlining all catalog data into editor configuration caused a blank Elementor controls panel on Amari.
 
