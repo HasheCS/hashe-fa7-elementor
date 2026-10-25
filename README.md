@@ -50,7 +50,9 @@ The optional Pro picker catalogs include **icon identifiers only**, sourced from
 
 ## Editor reliability
 
-Version 1.0.1 preloads icon names into Elementor's editor configuration so all libraries initialize synchronously. This avoids a race in Elementor's asynchronous icon-library loading that could leave some 3,781-icon Pro tabs empty, even though their JSON files are available. On public-facing pages, catalogs are not inlined, avoiding unnecessary frontend weight.
+Version 1.0.2 restores the compact, per-category JSON loading used by v1.0.0 and adds a small editor-only callback guard. Elementor uses one mutable completion callback for several concurrent catalog requests; when switching categories quickly, a response can be delivered to the wrong tab. The guard associates Hashe library callbacks with their own library names without changing Elementor core.
+
+**Note:** v1.0.1 was withdrawn from the stable releases because inlining all catalog data into editor configuration caused a blank Elementor controls panel on Amari.
 
 ## Development and testing
 

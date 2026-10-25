@@ -3,7 +3,7 @@ Contributors: Hashe Computer Solutions
 Tags: elementor, icons, font-awesome, icon-library, fontawesome
 Requires at least: 6.2
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -25,10 +25,14 @@ Existing Elementor icon tabs remain intact.
 
 == Changelog ==
 
+= 1.0.2 =
+* Preserve lightweight JSON catalog loading and fix callback races between concurrent icon-picker requests.
+* Restore Elementor editor responsiveness; no Kit or core modifications.
+* This is a candidate update requiring logged-in Elementor UI verification.
+
 = 1.0.1 =
-* Avoid missing and blank icon tabs when Elementor launches multiple concurrent catalog fetches.
-* Inline icon names for editor requests; retain JSON fallback on other pages.
-* No Kit or Elementor core changes.
+* Withdrawn: bulk inline icon catalogs caused a blank Elementor controls panel on Amari.
+* Do not use this version.
 
 = 1.0.0 =
 * Public-ready standalone Free icon picker.

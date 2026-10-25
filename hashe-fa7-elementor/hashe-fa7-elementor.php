@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Hashe Font Awesome 7 Icon Library for Elementor
  * Description: Makes Font Awesome 7 Free icons available in Elementor's icon picker, with additional Pro catalogs when an existing Font Awesome Kit is configured.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Requires Plugins: elementor
@@ -17,38 +17,6 @@ defined( 'ABSPATH' ) || exit;
 
 if ( ! defined( 'HASHE_FA7_VERSION' ) ) {
     define( 'HASHE_FA7_VERSION', '7.3.1' );
-}
-
-/**
- * Load icon name lists synchronously in the Elementor editor. Elementor's
- * icon-manager can associate concurrent catalog fetches with the wrong tab,
- * leaving some tabs blank even when their JSON files return HTTP 200.
- *
- * Outside wp-admin, keep the JSON URLs as a fallback without adding large
- * icon lists to ordinary frontend page requests.
- *
- * @param string $path Local path to one catalog JSON file.
- * @return array
- */
-function hashe_fa7_editor_icon_names( $path ) {
-    if ( ! is_admin() || ! is_readable( $path ) ) {
-        return array();
-    }
-
-    static $cache = array();
-    if ( ! isset( $cache[ $path ] ) ) {
-        $json = json_decode( (string) file_get_contents( $path ), true );
-        $cache[ $path ] = array();
-        if ( is_array( $json ) && isset( $json['icons'] ) && is_array( $json['icons'] ) ) {
-            foreach ( $json['icons'] as $name ) {
-                if ( is_string( $name ) && '' !== $name ) {
-                    $cache[ $path ][] = $name;
-                }
-            }
-        }
-    }
-
-    return $cache[ $path ];
 }
 
 /**
@@ -99,7 +67,6 @@ function hashe_fa7_register_icon_tabs( $tabs ) {
             'labelIcon'     => 'fas fa-icons',
             'ver'           => HASHE_FA7_VERSION,
             'fetchJson'     => $url . 'data/free-' . $family . '.json',
-            'icons'         => hashe_fa7_editor_icon_names( $catalog ),
             'native'        => true,
         );
     }
@@ -163,7 +130,6 @@ function hashe_fa7_register_icon_tabs( $tabs ) {
             'labelIcon'     => 'fas fa-icons',
             'ver'           => HASHE_FA7_VERSION,
             'fetchJson'     => $url . $path,
-            'icons'         => hashe_fa7_editor_icon_names( $dir . $path ),
             'native'        => true,
         );
     }
@@ -171,3 +137,18 @@ function hashe_fa7_register_icon_tabs( $tabs ) {
     return $tabs;
 }
 add_filter( 'elementor/icons_manager/additional_tabs', 'hashe_fa7_register_icon_tabs', 20 );
+
+/**
+ * Only Elementor's editor needs the async callback guard.
+ * Preserve the standard per-tab JSON loading and normal frontend behavior.
+ */
+function hashe_fa7_enqueue_editor_callback_guard() {
+    wp_enqueue_script(
+        'hashe-fa7-editor-callback-guard',
+        plugins_url( 'assets/js/editor-callback-guard.js', __FILE__ ),
+        array( 'elementor-editor' ),
+        '1.0.2',
+        true
+    );
+}
+add_action( 'elementor/editor/after_enqueue_scripts', 'hashe_fa7_enqueue_editor_callback_guard', 20 );

@@ -16,5 +16,10 @@ jobs:
           tools: none
       - name: Lint PHP
         run: php -l hashe-fa7-elementor/hashe-fa7-elementor.php
-      - name: Run smoke tests
+      - name: Run PHP smoke tests
         run: php tests/smoke.php
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Check editor callback isolation
+        run: node tests/editor-callback-guard.test.cjs
