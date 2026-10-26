@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "blueprint": "HASHE_FA7_ELEMENTOR_COMPLETE_ENGINEERING_BLUEPRINT_2026-10-27.md",
+  "source_commit": "cb8cad42da7bc5457a5524e9554ff1f004d092fa",
+  "last_reviewed": "2026-10-27",
+  "release_status": "BLOCKED_PENDING_ACCEPTANCE",
+  "checks": [
+    {
+      "id": "T01",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T02",
+      "status": "pass",
+      "evidence": "Verified in user's Amari beta.1/beta.2 popup screenshots and the 2026-10-26 live public two-style Kit test.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/actions/runs/40387270349",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T03",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T04",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T05",
+      "status": "pass",
+      "evidence": "Amari screenshot after beta.2 shows both Hashe category label icons and corrected Brands heading.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/actions/runs/40394257649",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T06",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T07",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T08",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T09",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T10",
+      "status": "pass",
+      "evidence": "Kit JS config method=css with JS embed; GitHub live Kit CI confirms Web Fonts on selected-styles Kit.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/actions/runs/40387270349",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T11",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T12",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T13",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T14",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T15",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T16",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T17",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T18",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T19",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T20",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T21",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T22",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T23",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T24",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    }
+  ]
+}
