@@ -1,0 +1,30 @@
+name: Font Awesome catalog candidate checks
+
+on:
+  push:
+    branches:
+      - feature/fa-kit-catalog-sync-20261026
+    paths:
+      - 'tools/sync_fontawesome_catalogs.py'
+      - 'tests/test_catalog_sync.py'
+      - '.github/workflows/catalog-sync-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-candidate-builder:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run offline candidate catalog tests
+        run: python -m unittest discover -s tests -p 'test_catalog_sync.py' -v
+      - name: Verify public Font Awesome API can build FA7 candidate
+        run: |
+          python tools/sync_fontawesome_catalogs.py --version 7.3.1 --output-dir /tmp/hashe-fa7-candidate
+          python -c "import json; from pathlib import Path; x=json.loads(Path('/tmp/hashe-fa7-candidate/manifest.json').read_text()); assert x['candidate'] and x['version']=='7.3.1'; print('Candidate validation passed:',len(x['styles']),'family styles')"
