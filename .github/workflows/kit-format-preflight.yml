@@ -50,6 +50,11 @@ jobs:
                       print("KIT_CSS_STATUS",cr.status,"BYTES",len(style_sheet))
                       print("FONT_FAMILIES",sorted(set(re.findall(r"font-family\s*:\s*([^;{}]+)",style_sheet)))[:25])
                       print("FONT_FACE",re.findall(r"@font-face\\s*\\{[^}]+\\}",style_sheet)[:5])
+                      print("CSS_FACE_COUNT",style_sheet.count("@font-face"))
+                      for keyword in ("Font Awesome 7 Brands","Font Awesome 7 Sharp Duotone","--fa-family","@import",".fa-house"):
+                        index=style_sheet.find(keyword)
+                        print("CSS_CONTEXT",keyword,index,style_sheet[max(0,index-180):index+380] if index>=0 else "")
+                      print("CSS_TAIL",style_sheet[-500:])
                       print("CSS_ICON_SAMPLES",re.findall(r"\\.fa-([a-z0-9-]+)\\s*[{,:]",style_sheet)[-40:])
                       print("ICON_SELECTOR_COUNT",len(set(re.findall(r"\.fa-([a-z0-9-]+):before",style_sheet))))
                       print("STYLESHEETH_HEAD",style_sheet[:250])
