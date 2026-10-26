@@ -50,7 +50,7 @@ The optional Pro picker catalogs include **icon identifiers only**, sourced from
 
 ## Editor reliability
 
-Version 1.0.3 fixes browser storage quota exhaustion. Elementor normally saves every normalized icon catalog into one `localStorage` entry named `elementor`; with sixteen 3,781-icon Pro catalogs, that can exceed Chrome's storage quota and leave categories blank. The editor-only guard now keeps Hashe catalogs in memory, removes only old Hashe catalog entries from Elementor storage, preserves unrelated Elementor settings, and continues to route simultaneous requests to the correct category. Normal per-category JSON fetching is preserved, with no Elementor core modifications. **v1.0.3 is undergoing logged-in editor validation on Amari before being marked stable.**
+Version 1.0.3 fixes browser storage quota exhaustion. Elementor normally saves every normalized icon catalog into one `localStorage` entry named `elementor`; with sixteen 3,781-icon Pro catalogs, that can exceed Chrome's storage quota and leave categories blank. The editor-only guard now keeps Hashe catalogs in memory, removes only old Hashe catalog entries from Elementor storage, preserves unrelated Elementor settings, and continues to route simultaneous requests to the correct category. Normal per-category JSON fetching is preserved, with no Elementor core modifications. **Amari validation:** On 26 October 2026, the site owner confirmed the Elementor editor was working after deploying v1.0.3. Automated browser and regression tests also passed. Compatibility on other environments should still be verified.
 
 **Note:** v1.0.1 was withdrawn from the stable releases because inlining all catalog data into editor configuration caused a blank Elementor controls panel on Amari.
 

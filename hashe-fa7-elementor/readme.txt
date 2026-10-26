@@ -29,7 +29,7 @@ Existing Elementor icon tabs remain intact.
 * Prevent Elementor localStorage quota errors by holding Hashe icon catalogs in editor memory.
 * Remove only outdated Hashe icon-cache entries; preserve other Elementor storage.
 * Keep existing per-category fetching and correct concurrent callback associations.
-* Pending visual validation in the logged-in Elementor editor.
+* Amari site owner confirmed the editor works after v1.0.3 installation (2026-10-26).
 
 = 1.0.2 =
 * Preserve lightweight JSON catalog loading and fix callback races between concurrent icon-picker requests.
