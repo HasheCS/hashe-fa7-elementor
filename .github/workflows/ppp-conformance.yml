@@ -1,0 +1,56 @@
+name: FA7 PPP engineering regression checks (not a release)
+
+on:
+  push:
+    branches:
+      - feature/fa7-ppp-integrated-20261027
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-and-editor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Syntax checks
+        run: |
+          php -l hashe-fa7-elementor/hashe-fa7-elementor.php
+          php -l hashe-fa7-elementor/includes/kit-bridge.php
+          php -l tests/smoke.php
+      - name: Selected style and five-native-library regression tests
+        run: php tests/smoke.php
+      - name: Elementor localStorage callback regression tests
+        run: node --test tests/editor-callback-guard.test.cjs
+
+  release-governance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline catalog and acceptance gate tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Confirm release is blocked while acceptance matrix is incomplete
+        run: |
+          python tools/release_gate.py qa/acceptance-evidence.json && {
+            echo "STOP: All acceptance rows unexpectedly approved. Review real-browser evidence before distributing."
+            exit 1
+          } || status=$?
+          if [ "$status" -ne 1 ]; then
+            echo "STOP: Release gate returned an unexpected error: $status"
+            exit 1
+          fi
+          echo "PASS: The incomplete beta is not authorized for final ZIP distribution."
