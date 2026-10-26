@@ -12,6 +12,7 @@ Status: **read-only baseline and isolated-branch engineering in progress**. This
 - Amari development website: `https://dev.sasseagency.com/amari/`.
 - Amari Elementor MCP route: Desktop Commander → `ovh-new.hashe.com` → `amari-homes-elementor`; authenticated read-only tool listing passed (10 annotated read-only Elementor operations). WordPress Umbrella directory confirms Amari is registered **only** with an Elementor MCP target, not with a WordPress plugin-inventory target.
 - Read-only public HTTP HEAD to the Amari root returned 200 and WordPress REST link; this does NOT prove editor, plugin versions or font previews.
+- Follow-up public HTML inventory (read-only) returned HTTP 200, 122,479 bytes, and referenced `https://kit.fontawesome.com/23f6a60c28.js?ver=4.3.2`. This proves the test Kit embed is present on the public Amari page; the `ver` parameter by itself must not be treated as a confirmed Elementor Pro installed version. Browser assets may differ inside logged-in Elementor editing.
 
 ## Grounded previous user observations
 
