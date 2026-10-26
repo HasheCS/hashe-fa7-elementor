@@ -4,17 +4,19 @@ Tags: elementor, icons, font-awesome, icon-library, fontawesome
 Requires at least: 6.2
 Requires PHP: 7.4
 Requires Plugins: elementor
-Stable tag: 1.0.3
+Stable tag: 1.1.0-beta.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Adds Font Awesome 7 Free Solid, Regular and Brands icons to Elementor's native Icon Library. Optional Pro catalogs list names only and require your own licensed Font Awesome Kit.
+Amari test beta: Free icon catalogs without a Kit; with an Elementor Kit ID, inspect the Kit's selected Web Font styles and register only matching names-only catalogs.
 
 == Description ==
 
-The plugin adds searchable Font Awesome 7.3.1 Free catalogs, including licensed Free CSS and webfonts, without requiring an account or Kit.
+BETA WARNING: This 1.1.0-beta.1 package is intended for controlled testing on Amari only. It is not the public recommended release. The plugin adds searchable Font Awesome 7.3.1 Free catalogs, including licensed Free CSS and webfonts, without requiring an account or Kit.
 
-When an existing Font Awesome Kit ID is configured in Elementor, it also registers 16 additional names-only Pro style catalogs. The Kit must be licensed and configured to serve the selected styles. A Kit ID alone does not grant Pro access. When a Kit is configured, the plugin leaves font loading (including Free styles) to that Kit.
+When an existing Font Awesome Kit ID is configured in Elementor, this beta reads its public Javascript Kit configuration and selected Web Font stylesheet. It registers only family styles detected through that stylesheet. Only names are registered; Font Awesome remains responsible for serving licensed fonts. Changes to a Kit are rechecked after a short cache interval (up to 15 minutes) when the Elementor editor is reopened.
+
+Web Fonts by-style Kits are the test target. SVG Kits, by-icon subsets and custom uploaded icon sets are NOT YET SUPPORTED or verified in this beta. If selected styles cannot be read, the beta registers no Kit-specific tabs; it does not assume a Pro license.
 
 No Pro glyphs, Pro font files, Pro CSS or private credentials are included. Elementor core files and existing icon libraries are not replaced.
 
@@ -22,11 +24,12 @@ The plugin requires an active Elementor installation. Elementor Pro is not requi
 
 == Installation ==
 
-1. Download the WordPress-installable ZIP attachment from https://github.com/HasheCS/hashe-fa7-elementor/releases/latest . For v1.0.3 the attachment is hashe-fa7-elementor-v1.0.3.zip .
+1. For this Amari beta use only the versioned testing ZIP from the feature-branch GitHub Actions artifact; do not install the public v1.0.3 ZIP for beta testing.
 2. Do NOT install GitHub's "Code > Download ZIP" repository source archive.
 3. In WordPress go to Plugins > Add New Plugin > Upload Plugin, select the release ZIP, then install and activate it.
-4. With Elementor active, open a widget's Icon Library control to select Font Awesome 7 Free icons.
-5. Optionally configure your existing licensed Font Awesome Pro Kit under Elementor > Settings > Integrations if available. The Kit must serve the selected families.
+4. With Elementor active, open a widget's Icon Library control. For the two-style test Kit 23f6a60c28, expect Hashe tabs for Brands and Sharp Duotone Regular; existing Elementor-native tabs are preserved.
+5. Set your existing Kit ID in Elementor > Settings > Integrations. For this beta, use a by-style Web Fonts Kit first. If no Kit is set, Hashe's three Free tabs appear.
+6. Before installing, take and verify a backup of the working Amari v1.0.3 plugin folder or WordPress site. If any Elementor editor issue occurs, deactivate this beta and reinstall the verified v1.0.3 package.
 
 Back up production sites before upgrades and verify on your actual Elementor setup. Pro icon names may appear even when a Kit does not serve their glyphs.
 
@@ -46,7 +49,13 @@ Check that Elementor is active, check the browser console, and for Kit-enabled i
 
 == Changelog ==
 
-= 1.0.3 (recommended release) =
+= 1.1.0-beta.1 (Amari test only) =
+* Public Font Awesome Kit Web Fonts style discovery; only explicitly enabled family-styles get added to the Elementor picker.
+* New family styles may be detected from the current Font Awesome REST release catalog without distributing Pro assets.
+* Per-category icon-name loading; cached Kit refresh; browser localStorage protection preserved.
+* SVG and by-icon Kit modes are not yet verified or supported in this beta.
+
+= 1.0.3 (previous recommended public release) =
 * Prevent Elementor browser-storage quota errors by holding Hashe icon catalogs in editor memory.
 * Remove only outdated Hashe icon-cache entries; preserve unrelated Elementor storage.
 * Keep per-category JSON fetching and correct concurrent callback association.
