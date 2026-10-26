@@ -2,6 +2,29 @@
 define( 'ABSPATH', __DIR__ );
 $GLOBALS['test_kit_id'] = '';
 $GLOBALS['registered_filter'] = null;
+$GLOBALS['hashe_transients'] = array();
+function is_wp_error( $response ) { return false; }
+function get_transient( $key ) { return $GLOBALS['hashe_transients'][$key] ?? false; }
+function set_transient( $key, $value, $ttl ) { $GLOBALS['hashe_transients'][$key] = $value; return true; }
+function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
+function wp_remote_retrieve_response_code( $response ) { return $response['code']; }
+function wp_remote_retrieve_body( $response ) { return $response['body']; }
+function wp_remote_get( $url, $options ) {
+    if ( 'https://kit.fontawesome.com/23f6a60c28.js' === $url ) {
+        return array( 'code' => 200, 'body' => 'window.FontAwesomeKitConfig = {"token":"23f6a60c28","version":"7.3.1","method":"css","baseUrl":"https://ka-p.fontawesome.com","subsetPath":"assets/23f6a60c28/112386267/kit.css"};' );
+    }
+    if ( 'https://ka-p.fontawesome.com/assets/23f6a60c28/112386267/kit.css?token=23f6a60c28' === $url ) {
+        return array( 'code' => 200, 'body' => '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400}' );
+    }
+    if ( 'https://api.fontawesome.com/releases/7.3.1/family-styles' === $url ) {
+        return array( 'code' => 200, 'body' => json_encode( array( 'familyStyles' => array(
+            array( 'family' => 'classic', 'style' => 'brands', 'shorthand' => 'brands', 'prefix' => 'fab' ),
+            array( 'family' => 'sharp-duotone', 'style' => 'regular', 'shorthand' => 'sharp-duotone-regular', 'prefix' => 'fasdr' ),
+            array( 'family' => 'classic', 'style' => 'solid', 'shorthand' => 'solid', 'prefix' => 'fas' )
+        ) ) ) );
+    }
+    return array( 'code' => 404, 'body' => '' );
+}
 function add_filter( $name, $callback, $priority = 10 ) { $GLOBALS['registered_filter'] = array( $name, $callback, $priority ); }
 function add_action( $name, $callback, $priority = 10 ) { $GLOBALS['registered_action'] = array( $name, $callback, $priority ); }
 function plugins_url( $path, $file ) { return plugin_dir_url( $file ) . $path; }
@@ -27,11 +50,12 @@ foreach ( array( 'solid' => 2001, 'regular' => 273, 'brands' => 609 ) as $family
 foreach ( array( 'fa-solid-900', 'fa-regular-400', 'fa-brands-400' ) as $font ) {
     check( is_file( $dir . 'assets/webfonts/' . $font . '.woff2' ), 'Bundled Free font: ' . $font );
 }
-$GLOBALS['test_kit_id'] = 'demo-kit-id';
+$GLOBALS['test_kit_id'] = '23f6a60c28';
 $pro = hashe_fa7_register_icon_tabs( $existing );
-check( 20 === count( $pro ), 'With Kit: three Free, sixteen Pro, and original' );
-check( isset( $pro['hashe-fa7-fasds'] ), 'Sharp Duotone Pro is registered' );
-check( false === $pro['hashe-fa7-free-solid']['url'], 'Kit renders Free' );
-check( false === $pro['hashe-fa7-fas']['url'], 'Kit renders Pro; no bundled Pro assets' );
+check( 3 === count( $pro ), 'With two-style Kit: two selected Kit tabs and original' );
+check( isset( $pro['hashe-fa7-fasdr'] ), 'Sharp Duotone Regular selected by Kit' );
+check( isset( $pro['hashe-fa7-fab'] ), 'Brands selected by Kit' );
+check( ! isset( $pro['hashe-fa7-fas'] ), 'Classic Solid omitted when not selected' );
+check( false === $pro['hashe-fa7-fasdr']['url'], 'Kit supplies rendering; no bundled Pro assets' );
 check( 3781 === count( json_decode( file_get_contents( $dir . 'data/fas.json' ), true )['icons'] ), 'Pro names available' );
 echo "PASS: Free and Pro-Kit modes, catalogs, fonts, and library preservation." . PHP_EOL;
