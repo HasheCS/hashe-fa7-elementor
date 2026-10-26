@@ -36,14 +36,14 @@ jobs:
       - name: Package WordPress-installable beta
         run: |
           set -euo pipefail
-          test "$(grep -c 'Version: 1.1.0-beta.1' hashe-fa7-elementor/hashe-fa7-elementor.php)" -eq 1
-          zip -q -r hashe-fa7-elementor-amari-beta-1.1.0.zip hashe-fa7-elementor
-          unzip -t hashe-fa7-elementor-amari-beta-1.1.0.zip | tail -1
-          test -s hashe-fa7-elementor-amari-beta-1.1.0.zip
-          sha256sum hashe-fa7-elementor-amari-beta-1.1.0.zip
+          test "$(grep -c 'Version: 1.1.0-beta.2' hashe-fa7-elementor/hashe-fa7-elementor.php)" -eq 1
+          zip -q -r hashe-fa7-elementor-amari-beta-1.1.0-beta.2.zip hashe-fa7-elementor
+          unzip -t hashe-fa7-elementor-amari-beta-1.1.0-beta.2.zip | tail -1
+          test -s hashe-fa7-elementor-amari-beta-1.1.0-beta.2.zip
+          sha256sum hashe-fa7-elementor-amari-beta-1.1.0-beta.2.zip
       - uses: actions/upload-artifact@v4
         with:
-          name: hashe-fa7-elementor-amari-beta-1.1.0
-          path: hashe-fa7-elementor-amari-beta-1.1.0.zip
+          name: hashe-fa7-elementor-amari-beta-1.1.0-beta.2
+          path: hashe-fa7-elementor-amari-beta-1.1.0-beta.2.zip
           retention-days: 14
           if-no-files-found: error
