@@ -22,7 +22,7 @@ jobs:
           python3 - <<'PY'
           from urllib.request import Request,urlopen
           from urllib.error import HTTPError,URLError
-          import re
+          import re, json
           for kit in ("23f6a60c28", "a076d05399"):
             for ext in ("css", "js"):
               url = "https://kit.fontawesome.com/%s.%s" % (kit, ext)
@@ -37,6 +37,19 @@ jobs:
                     for match in list(re.finditer("fa-solid", body))[:3]:
                       print("STYLE_CONTEXT",body[max(0,match.start()-200):match.end()+200])
                     print("JS_TAIL",body[-300:])
+                  if kit == "23f6a60c28" and ext == "js":
+                    marker = "window.FontAwesomeKitConfig = "
+                    cfg=json.loads(body.split(marker,1)[1].split(";",1)[0])
+                    asset = cfg.get("subsetPath")
+                    if not asset or not re.fullmatch(r"assets/[a-f0-9]+/[0-9]+/kit\.css",asset):
+                      raise ValueError("Unknown Kit asset path")
+                    hosted = cfg["baseUrl"].rstrip("/") + "/" + asset
+                    with urlopen(Request(hosted, headers={"User-Agent":"Mozilla/5.0"}),timeout=15) as cr:
+                      style_sheet=cr.read(4000000).decode("utf-8","replace")
+                      print("KIT_CSS_STATUS",cr.status,"BYTES",len(style_sheet))
+                      print("FONT_FAMILIES",sorted(set(re.findall(r"font-family\s*:\s*([^;{}]+)",style_sheet)))[:25])
+                      print("ICON_SELECTOR_COUNT",len(set(re.findall(r"\.fa-([a-z0-9-]+):before",style_sheet))))
+                      print("STYLESHEETH_HEAD",style_sheet[:250])
                   links = re.findall(r'https?://[^\\s]+', body)
                   print("URL_EXAMPLES",links[:5])
               except (HTTPError,URLError) as exc:
