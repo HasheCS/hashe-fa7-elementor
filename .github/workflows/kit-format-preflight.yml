@@ -32,7 +32,7 @@ jobs:
                   body = r.read(1000000).decode("utf-8","replace")
                   print("PUBLIC_KIT",kit,ext,"status",r.status,"length",len(body),"type",r.headers.get("content-type"))
                   print("SIGNALS", [t for t in ("@font-face","css/","familyStyles","fa-solid","kitConfig","FontAwesomeConfig") if t in body])
-                  links = list(dict.fromkeys(re.findall(r'https?://[^"\\'\s<>)]{10,180}', body)))
+                  links = re.findall(r'https?://[^\\s]+', body)
                   print("URL_EXAMPLES",links[:5])
               except (HTTPError,URLError) as exc:
                 print("PUBLIC_KIT",kit,ext,"error",str(exc))
