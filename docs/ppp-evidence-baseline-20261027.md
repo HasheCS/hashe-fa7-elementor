@@ -27,6 +27,7 @@ Status: **read-only baseline and isolated-branch engineering in progress**. This
 3. beta.2 currently **cannot** resolve SVG Kits or exact By Icon curation. For SVG, the bridge fails closed and preserves native tabs. For By Icon, public release metadata is not a substitute for an authenticated Kit subset inventory.
 4. Font Awesome documentation confirms By Style subsets serve every icon in chosen styles, By Icon serves hand-picked icons, and SVG is not offered for By Style subsets. Its authoritative GraphQL `Kit.familyStylesPaginated` / `only` fields require Kit-scoped authenticated read permissions. No extra customer credential can be silently added contrary to product requirement.
 5. A restricted By Style Kit cannot provide unselected Pro fonts. This is an **evidence-backed capability constraint**, but Amari's native-Pro cause remains unclassified until a controlled Hashe-enabled/disabled A/B test using the *same Kit ID* is performed.
+6. **Live Kit CDN CSS inspection (read-only, 27 Oct 2026):** Kit `23f6a60c28` reports `method=css`, `version=7.3.1`, `license=pro`, with 40 `@font-face` rules. After deduplication the only hosted font families/weights are `Font Awesome 7 Brands / 400` and `Font Awesome 7 Sharp Duotone / 400`. There are no Classic Pro Regular(400), Solid(900), Light(300), or Classic Duotone(900) font-face rules in this Kit stylesheet. This proves what this Kit serves; it does not prove whether Elementor separately includes any fallback font, and does not replace the controlled Amari A/B.
 
 ## Changes so far in this branch
 
