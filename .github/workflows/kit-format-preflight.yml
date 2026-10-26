@@ -31,6 +31,7 @@ jobs:
                 with urlopen(req, timeout=12) as r:
                   body = r.read(1000000).decode("utf-8","replace")
                   print("PUBLIC_KIT",kit,ext,"status",r.status,"length",len(body),"type",r.headers.get("content-type"))
+                  if kit=="23f6a60c28" and ext=="css": print("KIT_CSS_ENTRY",body[:350])
                   print("SIGNALS", [t for t in ("@font-face","css/","familyStyles","fa-solid","kitConfig","FontAwesomeConfig") if t in body])
                   if kit == "23f6a60c28" and ext == "js":
                     print("JS_HEAD",body[:1200])
