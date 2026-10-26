@@ -9,17 +9,20 @@ function set_transient( $key, $value, $ttl ) { $GLOBALS['hashe_transients'][$key
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
 function wp_remote_retrieve_response_code( $response ) { return $response['code']; }
 function wp_remote_retrieve_body( $response ) { return $response['body']; }
+$GLOBALS['mock_kit_method'] = 'css';
+$GLOBALS['mock_kit_css'] = '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400}';
 function wp_remote_get( $url, $options ) {
     if ( 'https://kit.fontawesome.com/23f6a60c28.js' === $url ) {
-        return array( 'code' => 200, 'body' => 'window.FontAwesomeKitConfig = {"token":"23f6a60c28","version":"7.3.1","method":"css","baseUrl":"https://ka-p.fontawesome.com","subsetPath":"assets/23f6a60c28/112386267/kit.css"};' );
+        return array( 'code' => 200, 'body' => 'window.FontAwesomeKitConfig = {"token":"23f6a60c28","version":"7.3.1","method":"' . $GLOBALS['mock_kit_method'] . '","baseUrl":"https://ka-p.fontawesome.com","subsetPath":"assets/23f6a60c28/112386267/kit.css"};' );
     }
     if ( 'https://ka-p.fontawesome.com/assets/23f6a60c28/112386267/kit.css?token=23f6a60c28' === $url ) {
-        return array( 'code' => 200, 'body' => '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400}' );
+        return array( 'code' => 200, 'body' => $GLOBALS['mock_kit_css'] );
     }
     if ( 'https://api.fontawesome.com/releases/7.3.1/family-styles' === $url ) {
         return array( 'code' => 200, 'body' => json_encode( array( 'familyStyles' => array(
             array( 'family' => 'classic', 'style' => 'brands', 'shorthand' => 'brands', 'prefix' => 'fab' ),
             array( 'family' => 'sharp-duotone', 'style' => 'regular', 'shorthand' => 'sharp-duotone-regular', 'prefix' => 'fasdr' ),
+            array( 'family' => 'classic', 'style' => 'light', 'shorthand' => 'light', 'prefix' => 'fal' ),
             array( 'family' => 'classic', 'style' => 'solid', 'shorthand' => 'solid', 'prefix' => 'fas' )
         ) ) ) );
     }
@@ -68,4 +71,48 @@ foreach ( $native as $native_id => $native_config ) {
     check( isset( $kit_with_native[$native_id] ) && $native_config === $kit_with_native[$native_id], 'Native tab preserved: ' . $native_id );
 }
 check( 3781 === count( json_decode( file_get_contents( $dir . 'data/fas.json' ), true )['icons'] ), 'Pro names available' );
+
+check( 'fa-sharp-duotone fa-regular' === $pro['hashe-fa7-fasdr']['displayPrefix'], 'Sharp Duotone style classes reflect Kit' );
+$five_native = array(
+    'fa-regular' => array( 'label' => 'Elementor Regular Pro' ),
+    'fa-solid' => array( 'label' => 'Elementor Solid Pro' ),
+    'fa-brands' => array( 'label' => 'Elementor Brands Pro' ),
+    'fa-light' => array( 'label' => 'Elementor Light Pro' ),
+    'fa-duotone' => array( 'label' => 'Elementor Duotone Pro' ),
+);
+$five_result = hashe_fa7_register_icon_tabs( $five_native );
+check( 7 === count( $five_result ), 'All five Elementor Pro tabs remain plus two Hashe selected styles' );
+foreach ( $five_native as $slug => $native_config ) {
+    check( $five_result[$slug] === $native_config, 'Native Pro library not modified: ' . $slug );
+}
+check( ! isset( $five_result['hashe-fa7-fal'] ), 'Unselected Light Pro is not added by Hashe' );
+check( ! isset( $five_result['hashe-fa7-fad'] ), 'Unselected Duotone is not added by Hashe' );
+
+// Changing only the Kit's selected styles must update Hashe tabs after
+// snapshot cache expiration; Elementor's original entries are untouched.
+$GLOBALS['mock_kit_css'] .= '@font-face{font-family:"Font Awesome 7 Classic";font-weight:300}';
+$GLOBALS['hashe_transients'] = array();
+$expanded = hashe_fa7_register_icon_tabs( $five_native );
+check( 8 === count( $expanded ) && isset( $expanded['hashe-fa7-fal'] ), 'Third selected style added after Kit refresh' );
+foreach ( $five_native as $slug => $native_config ) {
+    check( $expanded[$slug] === $native_config, 'Native library preserved through Kit refresh: ' . $slug );
+}
+$GLOBALS['mock_kit_css'] = '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}';
+$GLOBALS['hashe_transients'] = array();
+$reduced = hashe_fa7_register_icon_tabs( $five_native );
+check( 6 === count( $reduced ) && ! isset( $reduced['hashe-fa7-fasdr'] ), 'Removed Kit style disappears after refresh' );
+
+// Unsupported delivery is not guessed to be equivalent to Web Fonts.
+$GLOBALS['mock_kit_method'] = 'svg';
+$GLOBALS['hashe_transients'] = array();
+$unsupported = hashe_fa7_register_icon_tabs( $five_native );
+check( $unsupported === $five_native, 'Unverified SVG method fails closed without changing native libraries' );
+$GLOBALS['mock_kit_method'] = 'css';
+$GLOBALS['mock_kit_css'] = '';
+$GLOBALS['hashe_transients'] = array();
+$invalid_style = hashe_fa7_register_icon_tabs( $five_native );
+check( $invalid_style === $five_native, 'Unparseable Kit CSS cannot introduce unsupported Pro categories' );
+$GLOBALS['test_kit_id'] = 'not-a-kit';
+check( hashe_fa7_register_icon_tabs( $five_native ) === $five_native, 'Invalid Kit ID cannot introduce unsupported Pro categories' );
+
 echo "PASS: Free and Pro-Kit modes, catalogs, fonts, and library preservation." . PHP_EOL;
