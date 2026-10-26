@@ -1,0 +1,39 @@
+name: Inspect public hosted Kit response format
+
+on:
+  push:
+    branches:
+      - feature/fa-kit-catalog-sync-20261026
+    paths:
+      - '.github/workflows/kit-format-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Public-only Kit response checks
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from urllib.request import Request,urlopen
+          from urllib.error import HTTPError,URLError
+          import re
+          for kit in ("3cc8427547", "a076d05399"):
+            for ext in ("css", "js"):
+              url = "https://kit.fontawesome.com/%s.%s" % (kit, ext)
+              try:
+                req=Request(url, headers={"User-Agent":"Mozilla/5.0", "Referer":"https://www.w3schools.com/"})
+                with urlopen(req, timeout=12) as r:
+                  body = r.read(1000000).decode("utf-8","replace")
+                  print("PUBLIC_KIT",kit,ext,"status",r.status,"length",len(body),"type",r.headers.get("content-type"))
+                  print("SIGNALS", [t for t in ("@font-face","css/","familyStyles","fa-solid","kitConfig","FontAwesomeConfig") if t in body])
+                  links = list(dict.fromkeys(re.findall(r'https?://[^"\\'\s<>)]{10,180}', body)))
+                  print("URL_EXAMPLES",links[:5])
+              except (HTTPError,URLError) as exc:
+                print("PUBLIC_KIT",kit,ext,"error",str(exc))
+          PY
