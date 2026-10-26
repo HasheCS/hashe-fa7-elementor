@@ -41,6 +41,7 @@ check( 4 === count( $free ), 'No Kit: three Free families and original family' )
 check( ! isset( $free['hashe-fa7-fas'] ), 'No Pro without Kit' );
 check( ! empty( $free['hashe-fa7-free-solid']['url'] ), 'Bundled Free stylesheet' );
 check( isset( $free['existing-library'] ), 'Original library preserved' );
+check( 'eicon-font-awesome' === $free['hashe-fa7-free-solid']['labelIcon'], 'Free category symbol comes from Elementor, not the Kit' );
 $dir = dirname( __DIR__ ) . '/hashe-fa7-elementor/';
 foreach ( array( 'solid' => 2001, 'regular' => 273, 'brands' => 609 ) as $family => $expected ) {
     $catalog = json_decode( file_get_contents( $dir . 'data/free-' . $family . '.json' ), true );
@@ -57,5 +58,14 @@ check( isset( $pro['hashe-fa7-fasdr'] ), 'Sharp Duotone Regular selected by Kit'
 check( isset( $pro['hashe-fa7-fab'] ), 'Brands selected by Kit' );
 check( ! isset( $pro['hashe-fa7-fas'] ), 'Classic Solid omitted when not selected' );
 check( false === $pro['hashe-fa7-fasdr']['url'], 'Kit supplies rendering; no bundled Pro assets' );
+check( 'eicon-font-awesome' === $pro['hashe-fa7-fasdr']['labelIcon'], 'Kit category symbols use Elementor eicons' );
+check( 'eicon-font-awesome' === $pro['hashe-fa7-fab']['labelIcon'], 'Brands category symbol uses Elementor eicons' );
+check( false === strpos( $pro['hashe-fa7-fab']['label'], 'Brands Brands' ), 'Brands label has no duplicated style' );
+$native = array( 'fa-regular' => array( 'name' => 'fa-regular', 'label' => 'Native Regular' ), 'fa-solid' => array( 'name' => 'fa-solid', 'label' => 'Native Solid' ), 'fa-brands' => array( 'name' => 'fa-brands', 'label' => 'Native Brands' ) );
+$kit_with_native = hashe_fa7_register_icon_tabs( $native );
+check( 5 === count( $kit_with_native ), 'Two Kit tabs added while all native tabs remain' );
+foreach ( $native as $native_id => $native_config ) {
+    check( isset( $kit_with_native[$native_id] ) && $native_config === $kit_with_native[$native_id], 'Native tab preserved: ' . $native_id );
+}
 check( 3781 === count( json_decode( file_get_contents( $dir . 'data/fas.json' ), true )['icons'] ), 'Pro names available' );
 echo "PASS: Free and Pro-Kit modes, catalogs, fonts, and library preservation." . PHP_EOL;
