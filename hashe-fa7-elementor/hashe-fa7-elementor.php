@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Hashe Font Awesome 7 Icon Library for Elementor
  * Description: Makes Font Awesome 7 Free icons available in Elementor's icon picker, with additional Pro catalogs when an existing Font Awesome Kit is configured.
- * Version: 1.0.3
+ * Version: 1.1.0-beta.1
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Requires Plugins: elementor
@@ -18,6 +18,8 @@ defined( 'ABSPATH' ) || exit;
 if ( ! defined( 'HASHE_FA7_VERSION' ) ) {
     define( 'HASHE_FA7_VERSION', '7.3.1' );
 }
+
+require_once __DIR__ . '/includes/kit-bridge.php';
 
 /**
  * Extend Elementor's normal icon picker rather than replacing its built-in tabs.
@@ -49,6 +51,9 @@ function hashe_fa7_register_icon_tabs( $tabs ) {
      */
     $kit_id  = trim( (string) get_option( 'elementor_font_awesome_pro_kit_id', '' ) );
     $has_kit = '' !== $kit_id;
+    if ( $has_kit ) {
+        return hashe_fa7_register_kit_tabs( $tabs, $kit_id );
+    }
 
     foreach ( $free_families as $family => $spec ) {
         $catalog = $dir . 'data/free-' . $family . '.json';
@@ -71,69 +76,6 @@ function hashe_fa7_register_icon_tabs( $tabs ) {
         );
     }
 
-    if ( ! $has_kit ) {
-        return $tabs;
-    }
-
-    /*
-     * A Kit ID indicates that Elementor is configured to load a Kit. It does
-     * not establish a Pro license. The Kit must itself support the selected
-     * Pro fonts; this plugin does not distribute or unlock commercial assets.
-     */
-    $manifest_path = $dir . 'data/manifest.json';
-    if ( ! is_readable( $manifest_path ) ) {
-        return $tabs;
-    }
-    $manifest = json_decode( (string) file_get_contents( $manifest_path ), true );
-    if (
-        ! is_array( $manifest )
-        || HASHE_FA7_VERSION !== ( $manifest['version'] ?? '' )
-        || ! is_array( $manifest['styles'] ?? null )
-    ) {
-        return $tabs;
-    }
-
-    $pro_families = array(
-        'fas'   => array( 'Classic Solid', 'fa-solid' ),
-        'far'   => array( 'Classic Regular', 'fa-regular' ),
-        'fal'   => array( 'Classic Light', 'fa-light' ),
-        'fat'   => array( 'Classic Thin', 'fa-thin' ),
-        'fad'   => array( 'Duotone Solid', 'fa-duotone fa-solid' ),
-        'fadr'  => array( 'Duotone Regular', 'fa-duotone fa-regular' ),
-        'fadl'  => array( 'Duotone Light', 'fa-duotone fa-light' ),
-        'fadt'  => array( 'Duotone Thin', 'fa-duotone fa-thin' ),
-        'fass'  => array( 'Sharp Solid', 'fa-sharp fa-solid' ),
-        'fasr'  => array( 'Sharp Regular', 'fa-sharp fa-regular' ),
-        'fasl'  => array( 'Sharp Light', 'fa-sharp fa-light' ),
-        'fast'  => array( 'Sharp Thin', 'fa-sharp fa-thin' ),
-        'fasds' => array( 'Sharp Duotone Solid', 'fa-sharp-duotone fa-solid' ),
-        'fasdr' => array( 'Sharp Duotone Regular', 'fa-sharp-duotone fa-regular' ),
-        'fasdl' => array( 'Sharp Duotone Light', 'fa-sharp-duotone fa-light' ),
-        'fasdt' => array( 'Sharp Duotone Thin', 'fa-sharp-duotone fa-thin' ),
-    );
-
-    foreach ( $pro_families as $prefix => $spec ) {
-        $count = (int) ( $manifest['styles'][ $prefix ] ?? 0 );
-        $path  = 'data/' . $prefix . '.json';
-        if ( $count < 1 || ! is_readable( $dir . $path ) ) {
-            continue;
-        }
-
-        $name = 'hashe-fa7-' . $prefix;
-        $tabs[ $name ] = array(
-            'name'          => $name,
-            'label'         => 'Font Awesome 7 Pro - ' . $spec[0] . ' (' . number_format( $count ) . ')',
-            'url'           => false,
-            'enqueue'       => false,
-            'prefix'        => 'fa-',
-            'displayPrefix' => $spec[1],
-            'labelIcon'     => 'fas fa-icons',
-            'ver'           => HASHE_FA7_VERSION,
-            'fetchJson'     => $url . $path,
-            'native'        => true,
-        );
-    }
-
     return $tabs;
 }
 add_filter( 'elementor/icons_manager/additional_tabs', 'hashe_fa7_register_icon_tabs', 20 );
@@ -147,7 +89,7 @@ function hashe_fa7_enqueue_editor_callback_guard() {
         'hashe-fa7-editor-callback-guard',
         plugins_url( 'assets/js/editor-callback-guard.js', __FILE__ ),
         array( 'elementor-editor' ),
-        '1.0.3',
+        '1.1.0-beta.1',
         true
     );
 }
