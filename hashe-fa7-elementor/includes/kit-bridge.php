@@ -144,12 +144,12 @@ function hashe_fa7_register_kit_tabs( $tabs, $kit_id ) {
         $name = 'hashe-fa7-' . $prefix;
         $tabs[$name] = array(
             'name' => $name,
-            'label' => 'Font Awesome ' . $kit['version'] . ' Kit - ' . ucwords( str_replace( '-', ' ', $spec['family'] ) ) . ' ' . ucfirst( $spec['style'] ),
+            'label' => 'Font Awesome ' . $kit['version'] . ' Kit - ' . ( 'brands' === $spec['style'] ? 'Brands' : ucwords( str_replace( '-', ' ', $spec['family'] ) ) . ' ' . ucfirst( $spec['style'] ) ),
             'url' => false,
             'enqueue' => false,
             'prefix' => 'fa-',
             'displayPrefix' => hashe_fa7_display_prefix( $spec ),
-            'labelIcon' => 'fas fa-icons',
+            'labelIcon' => 'eicon-font-awesome',
             'ver' => $kit['version'],
             'fetchJson' => admin_url( 'admin-ajax.php?action=hashe_fa7_catalog&style=' . rawurlencode( $prefix ) ),
             'native' => true,
