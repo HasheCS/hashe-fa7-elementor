@@ -23,7 +23,7 @@ jobs:
           from urllib.request import Request,urlopen
           from urllib.error import HTTPError,URLError
           import re
-          for kit in ("3cc8427547", "a076d05399"):
+          for kit in ("23f6a60c28", "a076d05399"):
             for ext in ("css", "js"):
               url = "https://kit.fontawesome.com/%s.%s" % (kit, ext)
               try:
@@ -32,7 +32,7 @@ jobs:
                   body = r.read(1000000).decode("utf-8","replace")
                   print("PUBLIC_KIT",kit,ext,"status",r.status,"length",len(body),"type",r.headers.get("content-type"))
                   print("SIGNALS", [t for t in ("@font-face","css/","familyStyles","fa-solid","kitConfig","FontAwesomeConfig") if t in body])
-                  if kit == "a076d05399" and ext == "js":
+                  if kit == "23f6a60c28" and ext == "js":
                     print("JS_HEAD",body[:1200])
                     for match in list(re.finditer("fa-solid", body))[:3]:
                       print("STYLE_CONTEXT",body[max(0,match.start()-200):match.end()+200])
