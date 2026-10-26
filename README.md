@@ -15,10 +15,16 @@ Elementor can accept a Font Awesome Kit ID without listing every newer Font Awes
 
 ## Installation
 
-1. From GitHub, select **Code → Download ZIP**; extract it, then ZIP **only** the `hashe-fa7-elementor` folder (or use a packaged release ZIP when available).
+1. Open the [latest supported GitHub release](https://github.com/HasheCS/hashe-fa7-elementor/releases/latest) and download its attached `hashe-fa7-elementor-v1.0.3.zip` installer. **Do not use GitHub's Code → Download ZIP** as a WordPress plugin installer; it contains repository source, not the packaged release.
 2. WordPress → **Plugins → Add New → Upload Plugin**; install and activate the ZIP.
 3. Open a page with Elementor, select a widget with an Icon Library control, and view **Font Awesome 7 Free** families.
 4. **Optional Pro:** Elementor → Settings → Integrations → Font Awesome Pro; supply your own valid Pro Kit ID, configured for Font Awesome 7 and preferably Web Fonts. Return to the Icon Library to access the Pro families.
+
+## Release status
+
+- **v1.0.3 — Recommended and supported.** Includes the Elementor browser-storage fix; use the [packaged release ZIP](https://github.com/HasheCS/hashe-fa7-elementor/releases/download/v1.0.3/hashe-fa7-elementor-v1.0.3.zip) for new installations.
+- **v1.0.0 — Historical baseline only.** Retained as an earlier rollback candidate; it was not exhaustively browser-tested and is not recommended for new installations.
+- **v1.0.1 — Withdrawn.** Caused an Elementor editor regression. Its release installer was removed from public distribution; the Git tag and commit history remain for traceability. **Do not install.**
 
 ## Compatibility
 
@@ -51,8 +57,6 @@ The optional Pro picker catalogs include **icon identifiers only**, sourced from
 ## Editor reliability
 
 Version 1.0.3 fixes browser storage quota exhaustion. Elementor normally saves every normalized icon catalog into one `localStorage` entry named `elementor`; with sixteen 3,781-icon Pro catalogs, that can exceed Chrome's storage quota and leave categories blank. The editor-only guard now keeps Hashe catalogs in memory, removes only old Hashe catalog entries from Elementor storage, preserves unrelated Elementor settings, and continues to route simultaneous requests to the correct category. Normal per-category JSON fetching is preserved, with no Elementor core modifications. **Amari validation:** On 26 October 2026, the site owner confirmed the Elementor editor was working after deploying v1.0.3. Automated browser and regression tests also passed. Compatibility on other environments should still be verified.
-
-**Note:** v1.0.1 was withdrawn from the stable releases because inlining all catalog data into editor configuration caused a blank Elementor controls panel on Amari.
 
 ## Development and testing
 
