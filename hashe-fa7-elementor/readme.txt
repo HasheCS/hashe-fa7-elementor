@@ -4,7 +4,7 @@ Tags: elementor, icons, font-awesome, icon-library, fontawesome
 Requires at least: 6.2
 Requires PHP: 7.4
 Requires Plugins: elementor
-Stable tag: 1.1.0-beta.1
+Stable tag: 1.1.0-beta.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -12,7 +12,7 @@ Amari test beta: Free icon catalogs without a Kit; with an Elementor Kit ID, ins
 
 == Description ==
 
-BETA WARNING: This 1.1.0-beta.1 package is intended for controlled testing on Amari only. It is not the public recommended release. The plugin adds searchable Font Awesome 7.3.1 Free catalogs, including licensed Free CSS and webfonts, without requiring an account or Kit.
+BETA WARNING: This 1.1.0-beta.2 package is intended for controlled testing on Amari only. It is not the public recommended release. The plugin adds searchable Font Awesome 7.3.1 Free catalogs, including licensed Free CSS and webfonts, without requiring an account or Kit.
 
 When an existing Font Awesome Kit ID is configured in Elementor, this beta reads its public Javascript Kit configuration and selected Web Font stylesheet. It registers only family styles detected through that stylesheet. Only names are registered; Font Awesome remains responsible for serving licensed fonts. Changes to a Kit are rechecked after a short cache interval (up to 15 minutes) when the Elementor editor is reopened.
 
@@ -49,7 +49,10 @@ Check that Elementor is active, check the browser console, and for Kit-enabled i
 
 == Changelog ==
 
-= 1.1.0-beta.1 (Amari test only) =
+= 1.1.0-beta.2 (Amari test only) =
+* Fix missing icons beside Hashe Kit libraries by using Elementor's own eicon-font-awesome glyph instead of relying on an excluded Font Awesome Kit style.
+* Fix doubled Brands Brands category name; retain both selected Kit tabs and Elementor's original native tabs.
+* Native Pro tab glyphs still depend on the customer's selected Kit styles; this fix does not add unselected Pro font assets.
 * Public Font Awesome Kit Web Fonts style discovery; only explicitly enabled family-styles get added to the Elementor picker.
 * New family styles may be detected from the current Font Awesome REST release catalog without distributing Pro assets.
 * Per-category icon-name loading; cached Kit refresh; browser localStorage protection preserved.
