@@ -3,7 +3,7 @@ Contributors: Hashe Computer Solutions
 Tags: elementor, icons, font-awesome, icon-library, fontawesome
 Requires at least: 6.2
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -24,6 +24,12 @@ Existing Elementor icon tabs remain intact.
 4. Optionally add your own Pro Kit ID under Elementor Settings > Integrations.
 
 == Changelog ==
+
+= 1.0.3 =
+* Prevent Elementor localStorage quota errors by holding Hashe icon catalogs in editor memory.
+* Remove only outdated Hashe icon-cache entries; preserve other Elementor storage.
+* Keep existing per-category fetching and correct concurrent callback associations.
+* Amari site owner confirmed the editor works after v1.0.3 installation (2026-10-26).
 
 = 1.0.2 =
 * Preserve lightweight JSON catalog loading and fix callback races between concurrent icon-picker requests.
