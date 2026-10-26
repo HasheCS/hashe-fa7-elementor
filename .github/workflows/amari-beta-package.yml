@@ -1,0 +1,49 @@
+name: Build Amari Kit-aware beta ZIP
+
+on:
+  push:
+    branches:
+      - feature/fa-kit-catalog-sync-20261026
+    paths:
+      - 'hashe-fa7-elementor/**'
+      - 'tests/**'
+      - '.github/workflows/amari-beta-package.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-amari-beta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+      - name: PHP syntax and mock regressions
+        run: |
+          php -l hashe-fa7-elementor/hashe-fa7-elementor.php
+          php -l hashe-fa7-elementor/includes/kit-bridge.php
+          php -l tests/smoke.php
+          php tests/smoke.php
+      - name: Existing Elementor editor callback regression
+        run: node --test tests/editor-callback-guard.test.cjs
+      - name: Validate live public two-style Font Awesome Kit
+        run: php tests/live-kit-integration.php
+      - name: Package WordPress-installable beta
+        run: |
+          set -euo pipefail
+          test "$(grep -c 'Version: 1.1.0-beta.1' hashe-fa7-elementor/hashe-fa7-elementor.php)" -eq 1
+          zip -q -r hashe-fa7-elementor-amari-beta-1.1.0.zip hashe-fa7-elementor
+          unzip -t hashe-fa7-elementor-amari-beta-1.1.0.zip | tail -1
+          test -s hashe-fa7-elementor-amari-beta-1.1.0.zip
+          sha256sum hashe-fa7-elementor-amari-beta-1.1.0.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hashe-fa7-elementor-amari-beta-1.1.0
+          path: hashe-fa7-elementor-amari-beta-1.1.0.zip
+          retention-days: 14
+          if-no-files-found: error
