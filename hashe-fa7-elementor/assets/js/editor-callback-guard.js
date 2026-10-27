@@ -152,6 +152,20 @@
         };
         const memory = Object.create(null);
         const callbacks = Object.create(null);
+        // The modal can be reopened while earlier native/third-party fetches
+        // remain unresolved. Their callbacks close over the *same* mutable
+        // config.icons.libraries array and an old integer index. Without a
+        // generation boundary an old ninth tab can repopulate the rebuilt
+        // seven-tab list (and overwrite native tab identities).
+        const generations = new WeakMap();
+        let pickerGeneration = 0;
+        function beginPickerCycle() {
+            pickerGeneration += 1;
+            Object.keys(callbacks).forEach(function (name) {
+                delete callbacks[name];
+            });
+            restoreExpectedTabs(editor);
+        }
 
         store.save = function (settings) {
             if (settings && ownsLibrary(settings.name)) {
@@ -213,12 +227,23 @@
             // neither can consume the other's response.
             if (settings && typeof settings.name === 'string' &&
                 typeof callback === 'function') {
+                // Do not modify or persist Elementor's native data objects.
+                if (typeof settings === 'object') {
+                    generations.set(settings, pickerGeneration);
+                }
                 callbacks[settings.name] = callback;
             }
             return originals.init.apply(this, arguments);
         };
 
         library.runCallback = function (settings) {
+            if (settings && typeof settings === 'object' &&
+                generations.has(settings) &&
+                generations.get(settings) !== pickerGeneration) {
+                // Async work belonging to a closed/replaced modal must not
+                // write into the next modal's live array by a stale index.
+                return settings;
+            }
             if (settings && typeof settings.name === 'string' &&
                 Object.prototype.hasOwnProperty.call(callbacks, settings.name)) {
                 const callback = callbacks[settings.name];
@@ -240,7 +265,7 @@
         if (typeof manager.onPickerShow === 'function') {
             const open = manager.onPickerShow;
             manager.onPickerShow = function () {
-                restoreExpectedTabs(editor);
+                beginPickerCycle();
                 return open.apply(this, arguments);
             };
         }
@@ -251,7 +276,7 @@
         if (typeof manager.show === 'function') {
             const originalShow = manager.show;
             manager.show = function () {
-                restoreExpectedTabs(editor);
+                beginPickerCycle();
                 return originalShow.apply(this, arguments);
             };
         }
