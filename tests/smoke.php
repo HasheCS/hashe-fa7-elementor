@@ -253,7 +253,7 @@ try {
         'Ambiguous subset returns Elementor-compatible JSON, not malformed error payload' );
     $diagnostic = json_decode( substr( $error->getMessage(), strlen( 'JSON_OK:' ) ), true );
     check( is_array( $diagnostic ) && array() === $diagnostic['icons'] &&
-        false !== strpos( $diagnostic['diagnostic'], 'multi-style By Icon' ),
+        false !== strpos( $diagnostic['diagnostic'], 'By Icon' ),
         'Multi-style By Icon fails closed without destabilizing Elementor icon picker' );
 }
 $GLOBALS['hashe_transients'] = array();
@@ -333,3 +333,31 @@ check( 3 === count( $removed ) && isset( $removed['hashe-fa7-fas'] ) &&
        ! isset( $removed['hashe-fa7-fasdr'] ), 'Removed Kit style no longer appears after refresh' );
 check( isset( $removed['existing-library'] ), 'Kit changes never remove any native Elementor category' );
 echo "PASS: Adding and removing Kit styles updates only Hashe tabs after snapshot refresh.\\n";
+
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['test_kit_id'] = '23f6a60c28';
+$GLOBALS['mock_kit_method'] = 'css';
+$GLOBALS['mock_kit_subset'] = true;
+$GLOBALS['mock_kit_license'] = 'pro';
+$GLOBALS['mock_kit_css'] =
+    '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400;' .
+    'src:url(https://ka-p.fontawesome.com/releases/v7.3.1/webfonts/pro-fa-brands-400-0.woff2)}' .
+    '@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400;' .
+    'src:url(https://ka-p.fontawesome.com/releases/v7.3.1/webfonts/pro-fa-sharp-duotone-regular-400-0.woff2)}' .
+    '.fa-github{--fa:"X"}.fa-leaf{--fa:"Y"}';
+$by_style = hashe_fa7_kit_snapshot( '23f6a60c28' );
+check( 'full-family-fonts' === $by_style['subset_mode'],
+    'Full release WOFF2 URLs prove selected By Style families have complete font glyphs' );
+check( array( 'fab', 'fasdr' ) === array_keys( $by_style['family_styles'] ),
+    'Full font-face discovery identifies both independently selected families' );
+$_GET['style'] = 'fasdr';
+try {
+    hashe_fa7_ajax_catalog();
+    check( false, 'By Style AJAX did not return an icon array' );
+} catch ( RuntimeException $error ) {
+    check( 0 === strpos( $error->getMessage(), 'JSON_OK:' ), 'Real selected full font requires valid JSON' );
+    $output = json_decode( substr( $error->getMessage(), strlen( 'JSON_OK:' ) ), true );
+    check( is_array( $output ) && count( $output['icons'] ) > 1,
+        'Full By Style family uses public release membership rather than global CSS icon union' );
+}
+echo "PASS: Full release font URLs distinguish By Style from ambiguous multi-style By Icon subset.\n";
