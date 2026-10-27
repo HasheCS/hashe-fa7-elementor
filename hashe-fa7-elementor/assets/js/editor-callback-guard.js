@@ -147,7 +147,8 @@
             save: store.save,
             get: store.get,
             init: library.initIconType,
-            run: library.runCallback
+            run: library.runCallback,
+            fetchIcons: library.fetchIcons
         };
         const memory = Object.create(null);
         const callbacks = Object.create(null);
@@ -166,6 +167,44 @@
             }
             return originals.get.apply(this, arguments);
         };
+
+        // Elementor 4.x's fetchIcons() blindly assumes every JSON reply has
+        // an "icons" property and has no catch handler. Any timeout, expired
+        // nonce or unsupported Kit subset would otherwise raise an uncaught
+        // promise rejection in the entire editor. Keep this fault boundary
+        // Hashe-only: all native and third-party fetches use Elementor as-is.
+        if (typeof originals.fetchIcons === 'function') {
+            library.fetchIcons = function (settings) {
+                if (!settings || !ownsLibrary(settings.name) ||
+                    typeof window.fetch !== 'function') {
+                    return originals.fetchIcons.apply(this, arguments);
+                }
+                const instance = this;
+                return window.fetch(settings.fetchJson, {
+                    mode: 'same-origin',
+                    credentials: 'same-origin'
+                }).then(function (response) {
+                    if (!response.ok) {
+                        return { icons: [] };
+                    }
+                    return response.json();
+                }).catch(function () {
+                    return { icons: [] };
+                }).then(function (json) {
+                    if (!json || !Array.isArray(json.icons)) {
+                        json = { icons: [] };
+                    }
+                    settings.icons = json.icons;
+                    if (settings.icons.length) {
+                        return instance.normalizeIconList(settings);
+                    }
+                    // A deterministic, empty catalog keeps the category
+                    // identity visible, with no false icons and no JS crash.
+                    settings.icons = {};
+                    return instance.runCallback(settings);
+                });
+            };
+        }
 
         library.initIconType = function (settings, callback) {
             // Elementor 4.x stores only one global notifyCallback, even when
