@@ -286,7 +286,11 @@ function hashe_fa7_register_kit_tabs( $tabs, $kit_id ) {
             'displayPrefix' => hashe_fa7_display_prefix( $spec ),
             'labelIcon' => 'eicon-font-awesome',
             'ver' => $kit['version'],
-            'fetchJson' => admin_url( 'admin-ajax.php?action=hashe_fa7_catalog&style=' . rawurlencode( $prefix ) ),
+            'fetchJson' => admin_url(
+                'admin-ajax.php?action=hashe_fa7_catalog&style=' .
+                rawurlencode( $prefix ) . '&_wpnonce=' .
+                rawurlencode( wp_create_nonce( 'hashe_fa7_catalog' ) )
+            ),
             'native' => true,
         );
     }
@@ -497,6 +501,9 @@ function hashe_fa7_filter_names_to_kit( $names, $kit ) {
 
 /** Called by Elementor's per-category fetchJson request. */
 function hashe_fa7_ajax_catalog() {
+    // GET request is read-only but can trigger expensive public metadata reads:
+    // only the current authenticated editor session may request a catalog.
+    check_ajax_referer( 'hashe_fa7_catalog', '_wpnonce' );
     if ( ! current_user_can( 'edit_posts' ) ) {
         wp_send_json_error( 'Permission denied', 403 );
     }
