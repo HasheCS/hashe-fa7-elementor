@@ -35,12 +35,16 @@ function get_transient( $key ) { return $GLOBALS['hashe_transients'][$key] ?? fa
 function set_transient( $key, $value, $ttl ) { $GLOBALS['hashe_transients'][$key] = $value; return true; }
 function wp_create_nonce( $action ) { return 'unit-only-nonce'; }
 function check_ajax_referer( $action, $query_arg = false ) { return true; }
+function home_url( $path = '/' ) { return 'https://mandviwallamauser.com/'; }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
 function is_wp_error( $value ) { return false; }
 function wp_remote_retrieve_response_code( $value ) { return $value['status']; }
 function wp_remote_retrieve_body( $value ) { return $value['body']; }
 function wp_remote_get( $url, $options ) {
-    $headers = array( 'User-Agent: Hashe FA7 Amari beta integration-test' );
+    $headers = array(
+        'User-Agent: Hashe FA7 integration-test',
+        'Referer: ' . ( $options['headers']['Referer'] ?? home_url( '/' ) )
+    );
     $ctx = stream_context_create( array( 'http' => array( 'timeout' => 18, 'ignore_errors' => true, 'header' => implode( "\r\n", $headers ) ) ) );
     $raw = @file_get_contents( $url, false, $ctx );
     $status = 0;
