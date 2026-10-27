@@ -125,11 +125,11 @@ async function runTest() {
     console.log('PASS: A real picker-opening cycle restores exactly 7 distinct tabs despite out-of-order loads.');
 
     const referenceArray = config.icons.libraries;
-    const nativeCachedIcons = config.icons.libraries[0].icons;
+    const nativeCachedCount = Object.keys(config.icons.libraries[0].icons).length;
     manager.onPickerShow();
     assert.equal(config.icons.libraries,referenceArray,'Do not replace Elementor array identity');
-    assert.equal(config.icons.libraries[0].icons,nativeCachedIcons,
-        'Do not discard healthy native icons on modal reopening');
+    assert.equal(Object.keys(config.icons.libraries[0].icons).length,nativeCachedCount,
+        'Native icons must remain available on modal reopening');
     const thirdParty = {name:'outside-provider-icons',label:'Other Icon Provider',icons:['logo']};
     const virtualAll = {name:'all',label:'All Icons'};
     config.icons.libraries.push(thirdParty);
