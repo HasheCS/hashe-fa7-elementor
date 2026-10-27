@@ -78,6 +78,7 @@ function hashe_fa7_kit_snapshot( $kit_id ) {
     $snapshot = array(
         'version' => $config['version'],
         'method' => $method,
+        'license' => (string) ( $config['license'] ?? 'free' ),
         'family_styles' => array(),
         'error' => '',
     );
@@ -304,6 +305,10 @@ function hashe_fa7_release_style_catalog( $version ) {
         $families[$prefix] = array();
     }
 
+    $free_membership = array();
+    foreach ( $families as $id => $_ ) {
+        $free_membership[$id] = array();
+    }
     $found = false;
     $total_pages = null;
     for ( $page = 1; $page <= 250; $page++ ) {
@@ -336,6 +341,9 @@ function hashe_fa7_release_style_catalog( $version ) {
                         return false;
                     }
                     $families[$prefix][$icon['id']] = true;
+                    if ( 'free' === $license ) {
+                        $free_membership[$prefix][$icon['id']] = true;
+                    }
                 }
             }
             $found = true;
@@ -360,17 +368,29 @@ function hashe_fa7_release_style_catalog( $version ) {
     if ( ! $catalog ) {
         return false;
     }
+    $free = array();
+    foreach ( $free_membership as $prefix => $ids ) {
+        $free[$prefix] = array_keys( $ids );
+        sort( $free[$prefix], SORT_STRING );
+    }
+    $catalog['__free'] = $free;
     set_transient( $key, $catalog, DAY_IN_SECONDS );
     return $catalog;
 }
 
 /** Match Kit-approved style with exact public release membership. */
-function hashe_fa7_names_for_style( $version, $prefix ) {
+function hashe_fa7_names_for_style( $version, $prefix, $license = 'pro' ) {
     if ( ! is_string( $prefix ) || ! preg_match( '/^[a-z0-9]+$/D', $prefix ) ) {
         return false;
     }
     $catalog = hashe_fa7_release_style_catalog( $version );
-    return is_array( $catalog ) && isset( $catalog[$prefix] ) ? $catalog[$prefix] : false;
+    if ( ! is_array( $catalog ) ) {
+        return false;
+    }
+    if ( 'free' === $license ) {
+        return isset( $catalog['__free'][$prefix] ) ? $catalog['__free'][$prefix] : false;
+    }
+    return isset( $catalog[$prefix] ) ? $catalog[$prefix] : false;
 }
 
 /**
@@ -402,7 +422,11 @@ function hashe_fa7_ajax_catalog() {
     if ( ! is_array( $kit ) || ! isset( $kit['family_styles'][$style] ) ) {
         wp_send_json_error( 'Style not included in this Kit', 404 );
     }
-    $names = hashe_fa7_names_for_style( $kit['version'], $style );
+    $names = hashe_fa7_names_for_style(
+        $kit['version'],
+        $style,
+        ( 'free' === ( $kit['license'] ?? '' ) ) ? 'free' : 'pro'
+    );
     if ( false === $names ) {
         wp_send_json_error( 'Icon catalog temporarily unavailable', 503 );
     }
