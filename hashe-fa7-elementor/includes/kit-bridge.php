@@ -159,57 +159,110 @@ function hashe_fa7_register_kit_tabs( $tabs, $kit_id ) {
 }
 
 /** Get names for a style using the matching public release metadata. */
-function hashe_fa7_names_for_style( $version, $prefix ) {
-    $key = 'hashe_fa7_names_' . md5( $version . ':' . $prefix );
-    $cached = get_transient( $key );
-    if ( is_array( $cached ) ) {
-        return $cached;
-    }
-    // 7.3.1 ships with verified, names-only catalogs; this avoids API delays
-    // on the initial test Kit. Future releases and Pro Plus use public API.
-    if ( HASHE_FA7_VERSION === $version ) {
-        $local = plugin_dir_path( __FILE__ ) . '../data/' . $prefix . '.json';
-        if ( is_readable( $local ) ) {
-            $data = json_decode( (string) file_get_contents( $local ), true );
-            if ( is_array( $data['icons'] ?? null ) ) {
-                return $data['icons'];
-            }
-        }
+/**
+ * Build a full, release-specific names-only catalog from official public
+ * Font Awesome metadata. Reuse it across all selected Kit styles.
+ *
+ * The old 7.3.1 bundled Pro JSON files listed the same general names for
+ * numerous different styles. They are not authoritative style membership.
+ * Do NOT use those JSON files in Kit mode.
+ *
+ * Publish the complete, validated catalog only after all pages succeed.
+ * Failure leaves the previous cached complete catalog unchanged.
+ */
+function hashe_fa7_release_style_catalog( $version ) {
+    if ( ! is_string( $version ) || ! preg_match( '/^7\\.[0-9]+\\.[0-9]+$/D', $version ) ) {
+        return false;
     }
 
-    $icons = array();
-    for ( $page = 1; $page <= 100; $page++ ) {
-        $url = 'https://api.fontawesome.com/releases/' . $version . '/icons-minimal?page=' . $page . '&page_size=500';
-        $raw = hashe_fa7_public_get( $url, 1500000 );
-        $batch = false === $raw ? null : json_decode( $raw, true );
-        if ( ! is_array( $batch ) || ! is_array( $batch['icons'] ?? null ) ||
-             ! is_numeric( $batch['totalPageCount'] ?? null ) ) {
+    $key = 'hashe_fa7_release_' . md5( $version );
+    $cached = get_transient( $key );
+    if ( is_array( $cached ) && ! empty( $cached ) ) {
+        return $cached;
+    }
+
+    $family_response = hashe_fa7_public_get( 'https://api.fontawesome.com/releases/' . $version . '/family-styles', 700000 );
+    $family_json = false === $family_response ? null : json_decode( $family_response, true );
+    if ( ! is_array( $family_json ) || ! is_array( $family_json['familyStyles'] ?? null ) || ! $family_json['familyStyles'] ) {
+        return false;
+    }
+
+    $families = array();
+    foreach ( $family_json['familyStyles'] as $item ) {
+        $prefix = is_array( $item ) ? ( $item['prefix'] ?? '' ) : '';
+        if ( ! is_string( $prefix ) || ! preg_match( '/^[a-z0-9]+$/D', $prefix ) || isset( $families[$prefix] ) ) {
             return false;
         }
-        foreach ( $batch['icons'] as $icon ) {
+        $families[$prefix] = array();
+    }
+
+    $found = false;
+    $total_pages = null;
+    for ( $page = 1; $page <= 250; $page++ ) {
+        $path = 'https://api.fontawesome.com/releases/' . $version . '/icons-minimal?page=' . $page . '&page_size=500';
+        $response = hashe_fa7_public_get( $path, 1500000 );
+        $body = false === $response ? null : json_decode( $response, true );
+        if ( ! is_array( $body ) || ! is_array( $body['icons'] ?? null ) ||
+             ! is_numeric( $body['totalPageCount'] ?? null ) || ! $body['icons'] ) {
+            return false;
+        }
+        $reported_pages = (int) $body['totalPageCount'];
+        if ( $reported_pages < 1 || $reported_pages > 250 ||
+             ( null !== $total_pages && $total_pages !== $reported_pages ) ) {
+            return false;
+        }
+        $total_pages = $reported_pages;
+        foreach ( $body['icons'] as $icon ) {
             if ( ! is_array( $icon ) || ! is_string( $icon['id'] ?? null ) ||
-                 ! preg_match( '/^[a-z0-9-]+$/D', $icon['id'] ) ) {
-                continue;
+                 ! preg_match( '/^[a-z0-9-]+$/D', $icon['id'] ) ||
+                 ! is_array( $icon['familyStylesByLicense'] ?? null ) ) {
+                return false;
             }
             foreach ( array( 'free', 'pro' ) as $license ) {
-                foreach ( (array) ( $icon['familyStylesByLicense'][$license] ?? array() ) as $variant ) {
-                    if ( is_array( $variant ) && $prefix === ( $variant['prefix'] ?? '' ) ) {
-                        $icons[$icon['id']] = true;
+                if ( ! is_array( $icon['familyStylesByLicense'][$license] ?? null ) ) {
+                    return false;
+                }
+                foreach ( $icon['familyStylesByLicense'][$license] as $variant ) {
+                    $prefix = is_array( $variant ) ? ( $variant['prefix'] ?? '' ) : '';
+                    if ( ! is_string( $prefix ) || ! array_key_exists( $prefix, $families ) ) {
+                        return false;
                     }
+                    $families[$prefix][$icon['id']] = true;
                 }
             }
+            $found = true;
         }
-        if ( $page >= (int) $batch['totalPageCount'] ) {
+        if ( $page >= $total_pages ) {
             break;
         }
     }
-    if ( empty( $icons ) || $page > 100 ) {
+    if ( ! $found || $page > 250 ) {
         return false;
     }
-    $names = array_keys( $icons );
-    sort( $names, SORT_STRING );
-    set_transient( $key, $names, DAY_IN_SECONDS );
-    return $names;
+
+    $catalog = array();
+    foreach ( $families as $prefix => $names ) {
+        if ( ! $names ) {
+            continue;
+        }
+        $values = array_keys( $names );
+        sort( $values, SORT_STRING );
+        $catalog[$prefix] = $values;
+    }
+    if ( ! $catalog ) {
+        return false;
+    }
+    set_transient( $key, $catalog, DAY_IN_SECONDS );
+    return $catalog;
+}
+
+/** Match Kit-approved style with exact public release membership. */
+function hashe_fa7_names_for_style( $version, $prefix ) {
+    if ( ! is_string( $prefix ) || ! preg_match( '/^[a-z0-9]+$/D', $prefix ) ) {
+        return false;
+    }
+    $catalog = hashe_fa7_release_style_catalog( $version );
+    return is_array( $catalog ) && isset( $catalog[$prefix] ) ? $catalog[$prefix] : false;
 }
 
 /** Called by Elementor's per-category fetchJson request. */
