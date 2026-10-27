@@ -48,7 +48,7 @@ const library = {
             return this.runCallback({...settings, icons: store.getIcons(settings)});
         }
         setTimeout(() => {
-            const icons = Object.fromEntries(Array.from({length: 3781}, (_,i) => [
+            const icons = Object.fromEntries(Array.from({length: settings.name.startsWith('hashe-fa7-') ? 3781 : 24}, (_,i) => [
                 'icon-' + i, {prefix:'fa-', selector:'fa-icon-' + i, name:'Icon ' + i,
                     filter:'icon-' + i, displayPrefix:'fa-thin'}
             ]));
@@ -105,6 +105,41 @@ async function runTest() {
     });
     assert.equal(reopened, true);
     console.log('PASS: Reopening an already-loaded category reads its in-memory catalog.');
+
+    // This reproduced the real native-library regression: Elementor 4.x uses
+    // one mutable notifyCallback for every concurrent fetch. When the last
+    // initIconType call belongs to a Hashe library, its callback must not
+    // consume native responses arriving afterward.
+    const interleaved = [
+        {name: 'fa-solid', delay: 48},
+        {name: 'fa-regular', delay: 9},
+        {name: 'hashe-fa7-faps', delay: 30},
+        {name: 'fa-brands', delay: 60},
+        {name: 'hashe-fa7-fasds', delay: 4},
+        {name: 'fa-light', delay: 21},
+        {name: 'fa-duotone', delay: 36}
+    ];
+    const callbackCalls = Object.create(null);
+    const callbacksDone = interleaved.map(settings => new Promise((resolve, reject) => {
+        library.initIconType(settings, payload => {
+            try {
+                assert.equal(payload.name, settings.name,
+                    'Must deliver response to the correct native or Hashe callback');
+                assert.ok(Object.keys(payload.icons).length > 0);
+                callbackCalls[settings.name] = (callbackCalls[settings.name] || 0) + 1;
+                resolve();
+            } catch (error) { reject(error); }
+        });
+    }));
+    await Promise.race([Promise.all(callbacksDone), new Promise((_,reject) =>
+        setTimeout(()=>reject(new Error('Native/Hashe interleaved callbacks timed out')), 2000))]);
+    assert.equal(Object.keys(callbackCalls).length, 7);
+    assert.ok(interleaved.every(x => callbackCalls[x.name] === 1));
+    assert.ok(store.getIcons('fa-light'), 'Native library stored through the original Elementor storage');
+    assert.ok(store.getIcons('fa-duotone'), 'Every native library keeps its correct asynchronous callback');
+    assert.ok(!raw.get('elementor').includes('elementor_hashe-fa7-faps_icons'),
+        'Large Hashe catalog never persisted into native localStorage');
+    console.log('PASS: Five original Elementor Pro libraries and new Hashe tabs coexist with out-of-order asynchronous callbacks.');
 
     const native = {name:'fa-solid', icons:{star:{selector:'fa-star'}}};
     store.save(native);
