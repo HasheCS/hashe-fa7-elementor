@@ -13,7 +13,18 @@ function plugin_dir_path( $file ) { return dirname( $file ) . '/'; }
 function plugin_dir_url( $file ) { return 'https://example.test/plugins/' . basename( dirname( $file ) ) . '/'; }
 function plugins_url( $path, $file ) { return plugin_dir_url( $file ) . $path; }
 function wp_enqueue_script( $handle, $src, $deps, $ver, $footer ) {}
-function get_option( $key, $default = '' ) { return 'elementor_font_awesome_pro_kit_id' === $key ? $GLOBALS['test_kit_id'] : $default; }
+$GLOBALS['hashe_mock_options'] = array();
+function get_option( $key, $default = '' ) {
+    return 'elementor_font_awesome_pro_kit_id' === $key
+        ? $GLOBALS['test_kit_id']
+        : ( $GLOBALS['hashe_mock_options'][$key] ?? $default );
+}
+function add_option( $key, $value, $deprecated = '', $autoload = 'yes' ) {
+    if ( array_key_exists( $key, $GLOBALS['hashe_mock_options'] ) ) { return false; }
+    $GLOBALS['hashe_mock_options'][$key] = $value;
+    return true;
+}
+function delete_option( $key ) { unset( $GLOBALS['hashe_mock_options'][$key] ); return true; }
 function get_transient( $key ) { return $GLOBALS['hashe_transients'][$key] ?? false; }
 function set_transient( $key, $value, $ttl ) { $GLOBALS['hashe_transients'][$key] = $value; return true; }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
