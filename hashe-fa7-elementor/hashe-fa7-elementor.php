@@ -81,6 +81,66 @@ function hashe_fa7_register_icon_tabs( $tabs ) {
 add_filter( 'elementor/icons_manager/additional_tabs', 'hashe_fa7_register_icon_tabs', 20 );
 
 /**
+ * Safely fix mixed-content catalog paths from Elementor Pro on HTTPS sites.
+ *
+ * Amari's actual Elementor Pro registration reports all FIVE native
+ * fetchJson addresses as http://dev.sasseagency.com/amari/... while the
+ * Elementor editor is loaded through HTTPS. Browsers block those requests,
+ * producing empty native icon tabs despite correct library registration.
+ *
+ * The same legacy WordPress home URL may turn Hashe's Kit admin-ajax
+ * fetchJson into an HTTP request. Convert ONLY this WordPress installation's
+ * own HTTP URLs into same-origin root-relative paths. We don't change the
+ * site URL, Kit, native CSS, icon IDs, third-party destinations or database.
+ */
+function hashe_fa7_normalize_local_icon_fetch_urls( $tabs ) {
+    if ( ! is_array( $tabs ) ) {
+        return $tabs;
+    }
+    $home = wp_parse_url( home_url( '/' ) );
+    if ( ! is_array( $home ) || empty( $home['host'] ) ) {
+        return $tabs;
+    }
+    $host = strtolower( $home['host'] );
+    $base_path = rtrim( (string) ( $home['path'] ?? '/' ), '/' ) . '/';
+    foreach ( $tabs as $name => $tab ) {
+        if ( ! is_array( $tab ) ||
+             ! is_string( $tab['fetchJson'] ?? null ) ) {
+            continue;
+        }
+        $url = wp_parse_url( $tab['fetchJson'] );
+        if ( ! is_array( $url ) ||
+             'http' !== ( $url['scheme'] ?? '' ) ||
+             $host !== strtolower( (string) ( $url['host'] ?? '' ) ) ||
+             isset( $url['user'] ) || isset( $url['pass'] ) ||
+             isset( $url['port'] ) || isset( $url['fragment'] ) ||
+             ! is_string( $url['path'] ?? null ) ||
+             0 !== strpos( $url['path'], $base_path ) ) {
+            continue;
+        }
+        // Root-relative URLs inherit the actual editor's HTTPS origin and
+        // work correctly when WordPress is in a subdirectory such as /amari/.
+        $tab['fetchJson'] = $url['path'] .
+            ( isset( $url['query'] ) ? '?' . $url['query'] : '' );
+        $tabs[$name] = $tab;
+    }
+    return $tabs;
+}
+// Cover Elementor's initial Free/native tabs as well as Elementor Pro's
+// additional five and our own Kit catalogs. Run late after registration.
+add_filter(
+    'elementor/icons_manager/native',
+    'hashe_fa7_normalize_local_icon_fetch_urls',
+    99999
+);
+add_filter(
+    'elementor/icons_manager/additional_tabs',
+    'hashe_fa7_normalize_local_icon_fetch_urls',
+    99999
+);
+
+
+/**
  * Only Elementor's editor needs the async callback guard.
  * Preserve the standard per-tab JSON loading and normal frontend behavior.
  */
