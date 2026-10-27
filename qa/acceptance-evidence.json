@@ -3,7 +3,7 @@
   "blueprint": "HASHE_FA7_ELEMENTOR_COMPLETE_ENGINEERING_BLUEPRINT_2026-10-27.md",
   "source_commit": "cb8cad42da7bc5457a5524e9554ff1f004d092fa",
   "last_reviewed": "2026-10-27",
-  "release_status": "BLOCKED_PENDING_ACCEPTANCE",
+  "release_status": "BLOCKED_FIVE_VISUAL_AND_INTEROPERABILITY_FAILURES",
   "checks": [
     {
       "id": "T01",
@@ -15,9 +15,9 @@
     },
     {
       "id": "T02",
-      "status": "pass",
-      "evidence": "Verified in user's Amari beta.1/beta.2 popup screenshots and the 2026-10-26 live public two-style Kit test.",
-      "url": "https://github.com/HasheCS/hashe-fa7-elementor/actions/runs/40387270349",
+      "status": "fail",
+      "evidence": "FAIL on current Amari beta.3 screenshot 2026-10-27: many identical Brands categories despite WP-CLI returning only two distinct Hashe categories; visual editor does not meet exactly-two requirement.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
     },
@@ -39,9 +39,9 @@
     },
     {
       "id": "T05",
-      "status": "pass",
-      "evidence": "Amari screenshot after beta.2 shows both Hashe category label icons and corrected Brands heading.",
-      "url": "https://github.com/HasheCS/hashe-fa7-elementor/actions/runs/40394257649",
+      "status": "fail",
+      "evidence": "FAIL: category titles repeated as numerous Font Awesome 7.3.1 Kit - Brands entries in user's 1264x880 Elementor popup screenshot. Earlier beta.2 label-only passing evidence is superseded.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
     },
@@ -127,9 +127,9 @@
     },
     {
       "id": "T16",
-      "status": "pending",
-      "evidence": "",
-      "url": "",
+      "status": "fail",
+      "evidence": "FAIL: browser icon picker presents duplicated Hashe categories; async callback guard unit tests omit real modal identity and initial library-array contamination. Race root cause not yet fully proven.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
     },
@@ -167,17 +167,17 @@
     },
     {
       "id": "T21",
-      "status": "pending",
-      "evidence": "",
-      "url": "",
+      "status": "fail",
+      "evidence": "FAIL in installed Amari beta.3 (separate hotfix branch): global !important .fas/.far/.fal/.fad native font overrides + Classic Light/Duotone replaced by Sharp Duotone; violates blueprint no-global-override.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
     },
     {
       "id": "T22",
-      "status": "pending",
-      "evidence": "",
-      "url": "",
+      "status": "fail",
+      "evidence": "FAIL in real popup: duplicate My Libraries entries, original style labels lost across multiple categories. PHP still returns unique seven, so client state requires browser investigation.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
     },
@@ -197,5 +197,6 @@
       "approved_external_limitation": false,
       "signoff": ""
     }
-  ]
+  ],
+  "review_scope": "27 October screenshot is of installed Amari beta.3 from separate hotfix branch, not necessarily current integrated branch HEAD; these user-acceptance failures block promotion of any new candidate until reproduced/fixed. Same Kit unchanged."
 }
