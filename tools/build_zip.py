@@ -60,6 +60,10 @@ def build(output):
             raise ValueError("Unexpected asset extension: " + str(rel))
         if "pro" in item.name.lower() and item.suffix.lower() == ".woff2":
             raise ValueError("Paid Pro webfont files must never be packaged")
+        if item.suffix.lower() == ".css" and "pro" in item.name.lower():
+            raise ValueError("Paid or native-overriding Pro stylesheets may not be bundled")
+        if item.name == "native-pro-compat.css":
+            raise ValueError("Legacy global Elementor-native CSS overrides are prohibited")
         names.append(item)
     names.sort(key=lambda p: p.relative_to(PLUGIN).as_posix())
     output.parent.mkdir(parents=True, exist_ok=True)
