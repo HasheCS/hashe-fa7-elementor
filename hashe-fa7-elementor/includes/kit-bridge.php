@@ -47,17 +47,17 @@ function hashe_fa7_public_get( $url, $max_bytes = 4000000 ) {
     if ( ! $allowed ) {
         return false;
     }
+    $headers = array( 'Accept' => '*/*' );
+    if ( 'api.fontawesome.com' !== $host ) {
+        // Domain-restricted Kit asset endpoints need a legitimate site
+        // Referer. No site information is sent to the public catalog API.
+        $headers['Referer'] = home_url( '/' );
+    }
     $response = wp_remote_get( $url, array(
         'timeout' => 16,
         'redirection' => 0,
         'limit_response_size' => $max_bytes + 1,
-        'headers' => array(
-            'Accept' => '*/*',
-            // Domain-restricted Kits require a legitimate same-site Referer.
-            // Use only this WordPress installation's own home URL; never a
-            // hardcoded customer's site or user-supplied external Referer.
-            'Referer' => home_url( '/' ),
-        ),
+        'headers' => $headers,
     ) );
     if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
         return false;
