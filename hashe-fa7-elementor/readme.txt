@@ -4,7 +4,7 @@ Tags: elementor, icons, font-awesome, icon-library, fontawesome
 Requires at least: 6.2
 Requires PHP: 7.4
 Requires Plugins: elementor
-Stable tag: 1.1.0-beta.4
+Stable tag: 1.1.0-qa.20261027
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -64,7 +64,7 @@ The plugin is GPL-2.0-or-later. Bundled Font Awesome Free assets follow Font Awe
 
 == Changelog ==
 
-= 1.1.0-beta.4 integrated engineering development (not released) =
+= 1.1.0-qa.20261027 integrated engineering development (not released) =
 * Consolidate original Elementor icon-picker callback, duplicate-tab and storage repairs.
 * Remove beta.3 global .fas/.far/.fal/.fad paid-font substitution rules.
 * Read-only two-style Web Fonts test Kit and full SVG Kit public metadata verification.
