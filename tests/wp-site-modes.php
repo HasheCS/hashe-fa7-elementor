@@ -41,12 +41,26 @@ foreach ( array( 'fa-solid', 'fa-regular', 'fa-brands' ) as $name ) {
         fwrite( STDERR, "Original Elementor native tab missing: " . $name . PHP_EOL );
         exit( 4 );
     }
+    $source = (string) ( $tabs[$name]['fetchJson'] ?? '' );
+    if ( 0 === strpos( $source, 'http://' ) ) {
+        fwrite( STDERR, 'Mixed-content native HTTP icon catalog: ' . $name . PHP_EOL );
+        exit( 9 );
+    }
 }
 if ( 'kit' === $mode ) {
     foreach ( array( 'fa-light', 'fa-duotone' ) as $name ) {
         if ( ! isset( $tabs[$name] ) ) {
             fwrite( STDERR, "Native Elementor Pro library removed: " . $name . PHP_EOL );
             exit( 5 );
+        }
+    }
+}
+if ( 'kit' === $mode ) {
+    foreach ( $hashe as $name ) {
+        $source = (string) ( $tabs[$name]['fetchJson'] ?? '' );
+        if ( 0 === strpos( $source, 'http://' ) ) {
+            fwrite( STDERR, 'Mixed-content Kit AJAX endpoint: ' . $name . PHP_EOL );
+            exit( 10 );
         }
     }
 }
