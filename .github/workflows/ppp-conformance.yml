@@ -32,6 +32,8 @@ jobs:
         run: php tests/smoke.php
       - name: Elementor localStorage callback regression tests
         run: node --test tests/editor-callback-guard.test.cjs
+      - name: Kit fetch errors cannot take down native Elementor picker
+        run: node --test tests/editor-network-failure.test.cjs
 
   live-kit-metadata:
     runs-on: ubuntu-latest
