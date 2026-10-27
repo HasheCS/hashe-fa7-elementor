@@ -91,3 +91,13 @@ An actual instrumentation run of the mock Elementor 4.3.5 onPickerShow lifecycle
 Hashe AJAX now responds with valid `{icons:[]}` rather than WordPress `{success:false,data:...}` to unsupported subsets, invalidated inventories and metadata failures, so Elementor's unguarded `fetchIcons().then(json=>json.icons)` does not throw. The editor guard handles HTTP failure, invalid JSON and offline fetch for Hashe-only requests while native fetch remains original. Live authenticated WP-CLI endpoint canary on Amari returned exactly 572 Brands and 3,781 Sharp Duotone Regular icon names, plus an explicit empty catalog for unselected Solid, all with the same Kit setting. No private WordPress admin credentials were handled.
 
 **Status remains blocked on a signed-in native picker / glyph acceptance, Pro-only font licensing, and exact By Icon private Kit manifest; the consolidated candidate has not been deployed or promoted to public.**
+
+### Live WP-CLI before/after source verification for HTTPS native catalogs
+
+The same Amari WordPress installation with Elementor Pro 4.3.2 and Elementor 4.3.5 was tested twice without installing the new plugin:
+
+1. With installed Hashe plugin skipped **and integrated candidate not loaded**, each native Elementor Pro `fetchJson` is `http://dev.sasseagency.com/amari/wp-content/plugins/elementor-pro/assets/lib/font-awesome-pro/{regular,solid,brands,light,duotone}.js`.
+2. With installed Hashe plugin skipped **and the integrated candidate explicitly required from isolated checkout**, **all five native original icon-library descriptors** remain named `fa-regular`, `fa-solid`, `fa-brands`, `fa-light`, `fa-duotone` with identical prefixes, labels, Pro version and `url:false`, `enqueue:false`. Their `fetchJson` values are now root-relative `/amari/wp-content/plugins/elementor-pro/assets/lib/font-awesome-pro/{style}.js`. This inherits HTTPS from the editor and cannot trigger HTTP mixed-content blocking.
+3. Existing selected Kit remains `23f6a60c28`. Amari's live WordPress canaries verified 5 native + exactly two Kit tabs, three Free tabs in a no-Kit simulated request, and safe invalid-ID behavior with the DB option left untouched.
+
+**This is definitive proof of the server-side URL correction and unchanged native registration, but not visual evidence that all five Pro glyph families are licensed/loaded.** Original five Pro `url:false`/no-font CSS are already present without Hashe and require an A/B visual baseline with the same Kit.
