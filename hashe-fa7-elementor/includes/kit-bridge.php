@@ -285,22 +285,32 @@ function hashe_fa7_release_style_catalog( $version ) {
     }
 
     $key = 'hashe_fa7_release_' . md5( $version );
+    $check_key = 'hashe_fa7_refresh_' . md5( $version );
     $cached = get_transient( $key );
-    if ( is_array( $cached ) && ! empty( $cached ) ) {
-        return $cached;
+    $last_good = is_array( $cached ) && ! empty( $cached ) ? $cached : false;
+    if ( false !== $last_good && get_transient( $check_key ) ) {
+        return $last_good;
     }
+    // A failed refresh must preserve the full previous version-scoped catalog.
+    // Never mix rows from different versions or cache partial API pages.
+    $recover = static function () use ( $last_good, $check_key ) {
+        if ( false !== $last_good ) {
+            set_transient( $check_key, 'retry', 300 );
+        }
+        return $last_good;
+    };
 
     $family_response = hashe_fa7_public_get( 'https://api.fontawesome.com/releases/' . $version . '/family-styles', 700000 );
     $family_json = false === $family_response ? null : json_decode( $family_response, true );
     if ( ! is_array( $family_json ) || ! is_array( $family_json['familyStyles'] ?? null ) || ! $family_json['familyStyles'] ) {
-        return false;
+        return $recover();
     }
 
     $families = array();
     foreach ( $family_json['familyStyles'] as $item ) {
         $prefix = is_array( $item ) ? ( $item['prefix'] ?? '' ) : '';
         if ( ! is_string( $prefix ) || ! preg_match( '/^[a-z0-9]+$/D', $prefix ) || isset( $families[$prefix] ) ) {
-            return false;
+            return $recover();
         }
         $families[$prefix] = array();
     }
@@ -317,28 +327,28 @@ function hashe_fa7_release_style_catalog( $version ) {
         $body = false === $response ? null : json_decode( $response, true );
         if ( ! is_array( $body ) || ! is_array( $body['icons'] ?? null ) ||
              ! is_numeric( $body['totalPageCount'] ?? null ) || ! $body['icons'] ) {
-            return false;
+            return $recover();
         }
         $reported_pages = (int) $body['totalPageCount'];
         if ( $reported_pages < 1 || $reported_pages > 250 ||
              ( null !== $total_pages && $total_pages !== $reported_pages ) ) {
-            return false;
+            return $recover();
         }
         $total_pages = $reported_pages;
         foreach ( $body['icons'] as $icon ) {
             if ( ! is_array( $icon ) || ! is_string( $icon['id'] ?? null ) ||
                  ! preg_match( '/^[a-z0-9-]+$/D', $icon['id'] ) ||
                  ! is_array( $icon['familyStylesByLicense'] ?? null ) ) {
-                return false;
+                return $recover();
             }
             foreach ( array( 'free', 'pro' ) as $license ) {
                 if ( ! is_array( $icon['familyStylesByLicense'][$license] ?? null ) ) {
-                    return false;
+                    return $recover();
                 }
                 foreach ( $icon['familyStylesByLicense'][$license] as $variant ) {
                     $prefix = is_array( $variant ) ? ( $variant['prefix'] ?? '' ) : '';
                     if ( ! is_string( $prefix ) || ! array_key_exists( $prefix, $families ) ) {
-                        return false;
+                        return $recover();
                     }
                     $families[$prefix][$icon['id']] = true;
                     if ( 'free' === $license ) {
@@ -353,7 +363,7 @@ function hashe_fa7_release_style_catalog( $version ) {
         }
     }
     if ( ! $found || $page > 250 ) {
-        return false;
+        return $recover();
     }
 
     $catalog = array();
@@ -366,7 +376,7 @@ function hashe_fa7_release_style_catalog( $version ) {
         $catalog[$prefix] = $values;
     }
     if ( ! $catalog ) {
-        return false;
+        return $recover();
     }
     $free = array();
     foreach ( $free_membership as $prefix => $ids ) {
@@ -374,7 +384,8 @@ function hashe_fa7_release_style_catalog( $version ) {
         sort( $free[$prefix], SORT_STRING );
     }
     $catalog['__free'] = $free;
-    set_transient( $key, $catalog, DAY_IN_SECONDS );
+    set_transient( $key, $catalog, 30 * DAY_IN_SECONDS );
+    set_transient( $check_key, 'fresh', DAY_IN_SECONDS );
     return $catalog;
 }
 
