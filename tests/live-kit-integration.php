@@ -42,6 +42,7 @@ $base = array( 'existing-library' => array( 'name' => 'existing-library' ) );
 $kit = hashe_fa7_kit_snapshot( '23f6a60c28' );
 assert_kit( is_array( $kit ) && empty( $kit['error'] ), 'Kit response and stylesheet discovery' );
 assert_kit( 'css' === $kit['method'], 'Web Fonts mode identified' );
+assert_kit( is_array( $kit['icon_names'] ?? null ) && count( $kit['icon_names'] ) > 4000, 'Real Kit CSS exposes full hosted icon selector inventory' );
 $prefixes = array_keys( $kit['family_styles'] );
 sort( $prefixes );
 echo 'Discovered only Kit prefixes: ' . implode( ', ', $prefixes ) . "\n";
@@ -52,6 +53,8 @@ foreach ( $prefixes as $prefix ) {
     assert_kit( isset( $tabs['hashe-fa7-' . $prefix] ), 'Expected tab: ' . $prefix );
     $names = hashe_fa7_names_for_style( $kit['version'], $prefix );
     assert_kit( is_array( $names ) && count( $names ) > 100, 'Icon names for ' . $prefix );
+    $hosted = hashe_fa7_filter_names_to_kit( $names, $kit );
+    assert_kit( is_array( $hosted ) && count( $hosted ) === count( $names ), 'Every official ' . $prefix . ' icon is represented by current selected Kit CSS' );
 }
 $GLOBALS['test_kit_id'] = '';
 $tabs = hashe_fa7_register_icon_tabs( $base );
