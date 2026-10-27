@@ -12,10 +12,12 @@ $cases = array(
     array( 'library' => 'hashe-fa7-fasdr', 'value' => 'fa-sharp-duotone fa-regular fa-house', 'class' => 'fa-sharp-duotone fa-regular fa-house' ),
 );
 foreach ( $cases as $case ) {
-    $html = \Elementor\Icons_Manager::get_icon_html( array(
+    ob_start();
+    \Elementor\Icons_Manager::render_icon( array(
         'library' => $case['library'],
         'value' => $case['value']
     ) );
+    $html = (string) ob_get_clean();
     if ( ! is_string( $html ) || '' === $html ||
          false === strpos( $html, $case['class'] ) ) {
         fwrite( STDERR, 'ICON_RENDER_MISMATCH=' . $case['library'] . '=' . (string) $html . "\n" );
