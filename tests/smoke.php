@@ -91,6 +91,12 @@ function wp_remote_get( $url, $options ) {
     return array( 'code' => 404, 'body' => '' );
 }
 function add_filter( $name, $callback, $priority = 10 ) { $GLOBALS['registered_filter'] = array( $name, $callback, $priority ); }
+$GLOBALS['hashe_test_schedule'] = array();
+function wp_next_scheduled( $name ) { return $GLOBALS['hashe_test_schedule'][$name] ?? false; }
+function wp_schedule_event( $time, $recurrence, $name ) { $GLOBALS['hashe_test_schedule'][$name] = $time; return true; }
+function wp_clear_scheduled_hook( $name ) { unset( $GLOBALS['hashe_test_schedule'][$name] ); return 1; }
+function register_activation_hook( $file, $callback ) { $GLOBALS['hashe_activation'] = $callback; }
+function register_deactivation_hook( $file, $callback ) { $GLOBALS['hashe_deactivation'] = $callback; }
 function add_action( $name, $callback, $priority = 10 ) { $GLOBALS['registered_action'] = array( $name, $callback, $priority ); }
 function plugins_url( $path, $file ) { return plugin_dir_url( $file ) . $path; }
 function wp_enqueue_style( $handle, $src, $deps, $ver ) { $GLOBALS['style_enqueued'] = compact( 'handle', 'src', 'deps', 'ver' ); }
