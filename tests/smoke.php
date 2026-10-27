@@ -69,6 +69,7 @@ function wp_remote_get( $url, $options ) {
         $empty = array();
         $icons = 1 === $page ? array(
             array( 'id' => 'github', 'familyStylesByLicense' => array( 'free' => array( $brands ), 'pro' => $empty ) ),
+            array( 'id' => 'apple', 'familyStylesByLicense' => array( 'free' => array( $brands ), 'pro' => $empty ) ),
             array( 'id' => 'leaf', 'familyStylesByLicense' => array( 'free' => $empty, 'pro' => array( $sharp_regular ) ) ),
         ) : array(
             array( 'id' => 'rocket', 'familyStylesByLicense' => array( 'free' => $empty, 'pro' => array( $sharp_regular ) ) ),
@@ -121,7 +122,7 @@ check( isset( $pro['hashe-fa7-fab'] ), 'Brands selected by Kit' );
 check( ! isset( $pro['hashe-fa7-fas'] ), 'Classic Solid omitted when not selected' );
 check( ! function_exists( 'hashe_fa7_native_compat_rules' ), 'Do not globally override Elementor native font classes' );
 check( ! function_exists( 'hashe_fa7_enqueue_native_compat' ), 'No site-wide Classic Pro fallback overrides' );
-check( array( 'github' ) === hashe_fa7_names_for_style( '7.3.1', 'fab', 'free' ), 'Free Kit Brands contain only free icon names' );
+check( array( 'apple', 'github' ) === hashe_fa7_names_for_style( '7.3.1', 'fab', 'free' ), 'Free Kit Brands contain only free icon names' );
 check( array() === hashe_fa7_names_for_style( '7.3.1', 'fasdr', 'free' ), 'Free Kit excludes paid Sharp Duotone icon names' );
 check( array() === hashe_fa7_names_for_style( '7.3.1', 'fas', 'free' ), 'Free Kit excludes paid Classic Solid icon names' );
 echo "PASS: Kit catalogs, native libraries, safe editor integration without global styling.\n";
@@ -144,6 +145,22 @@ $restored = hashe_fa7_release_style_catalog( '7.3.1' );
 check( $first === $restored, 'Complete metadata refresh atomically reinstated' );
 check( 'fresh' === $GLOBALS['hashe_transients'][$refresh_key], 'Successful refresh interval stored' );
 
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_kit_css'] =
+    '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}' .
+    '.fa-github{--fa:"X"}.fa-apple{--fa:"Y"}';
+$curated = hashe_fa7_kit_snapshot( '23f6a60c28' );
+check( array( 'fab' ) === array_keys( $curated['family_styles'] ), 'By Icon-like Web Fonts subset yields one style' );
+$curated_icons = hashe_fa7_filter_names_to_kit(
+    hashe_fa7_names_for_style( '7.3.1', 'fab', 'free' ),
+    $curated
+);
+check( array( 'apple', 'github' ) === $curated_icons, 'Curated CSS subset exposes only selected icon IDs' );
+check( array() === hashe_fa7_filter_names_to_kit( array( 'facebook' ), $curated ),
+    'Unselected icon does not appear in curated subset' );
+$GLOBALS['mock_kit_css'] = '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}' .
+    '@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400}' .
+    '.fa-github{--fa:"X"}.fa-leaf{--fa:"Y"}.fa-rocket{--fa:"Z"}';
 $GLOBALS['hashe_transients'] = array();
 $GLOBALS['mock_kit_method'] = 'js';
 $GLOBALS['mock_kit_subset'] = false;
