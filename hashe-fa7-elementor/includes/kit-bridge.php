@@ -206,11 +206,28 @@ function hashe_fa7_kit_snapshot( $kit_id ) {
 
     preg_match_all( '/@font-face\s*\{([^}]+)\}/i', $css, $blocks );
     $enabled = array();
+    $all_standard_font_faces = true;
+    $recognized_faces = 0;
     $weights = array( '100' => 'thin', '300' => 'light', '400' => 'regular', '600' => 'semibold', '900' => 'solid' );
     foreach ( $blocks[1] as $block ) {
         if ( ! preg_match( '/font-family\s*:\s*["\x27]?Font Awesome [0-9]+ ([a-zA-Z -]+)/i', $block, $fm ) ||
              ! preg_match( '/font-weight\s*:\s*([0-9]+)/i', $block, $wm ) ) {
             continue;
+        }
+        $recognized_faces++;
+        // A By Style Kit serves ordinary, complete release font files for
+        // each selected family; verified on the actual two-style 7.3.1 Kit
+        // (40 of 40 @font-face src URLs are release webfonts).
+        //
+        // A custom By Icon Kit can emit a global fa-UNICODE mapping while
+        // supplying per-family subset font files. That global mapping is NOT
+        // proof that every listed name exists in every selected family. Do
+        // not conflate the two kinds of Web Fonts subsets.
+        $release_fonts = '#https://ka-[pf]\\.fontawesome\\.com/releases/v' .
+            preg_quote( $snapshot['version'], '#' ) .
+            '/webfonts/[a-zA-Z0-9_-]+\\.woff2#D';
+        if ( ! preg_match( $release_fonts, $block ) ) {
+            $all_standard_font_faces = false;
         }
         $family = strtolower( trim( preg_replace( '/[[:space:]]+/', '-', $fm[1] ) ) );
         // Full Classic styles use font-family "Font Awesome 7 Pro" or
@@ -222,6 +239,10 @@ function hashe_fa7_kit_snapshot( $kit_id ) {
         if ( '' !== $style ) {
             $enabled[$family . ':' . $style] = true;
         }
+    }
+    if ( 'kit-css' === $snapshot['subset_mode'] &&
+         $recognized_faces > 0 && $all_standard_font_faces ) {
+        $snapshot['subset_mode'] = 'full-family-fonts';
     }
     if ( ! $enabled ) {
         $snapshot['error'] = 'Kit stylesheet did not expose supported font families.';
@@ -543,11 +564,20 @@ function hashe_fa7_ajax_catalog() {
     if ( false === $names ) {
         hashe_fa7_ajax_empty( 'Metadata temporarily unavailable; reload the editor to retry' );
     }
-    if ( 'js' === ( $kit['method'] ?? '' ) &&
-         'full' === ( $kit['subset_mode'] ?? '' ) ) {
-        // The customer's licensed SVG bundle already contains the complete
-        // family-styles verified above. No Pro SVG paths are redistributed.
+    $subset_mode = (string) ( $kit['subset_mode'] ?? '' );
+    if ( ( 'js' === ( $kit['method'] ?? '' ) && 'full' === $subset_mode ) ||
+         'full-family-fonts' === $subset_mode ) {
+        // Public release membership is precise: the licensed Kit is serving
+        // actual full release font files for every selected family-style.
+        // Unlike global CSS class names, the font asset URLs establish that
+        // the requested style's complete font is available.
     } else {
+        if ( 'kit-css' === $subset_mode &&
+             count( $kit['family_styles'] ) > 1 ) {
+            hashe_fa7_ajax_empty(
+                'Exact per-style membership of multi-style custom By Icon Kit is unavailable'
+            );
+        }
         $selected = hashe_fa7_filter_names_to_kit( $names, $kit );
         if ( false === $selected ) {
             hashe_fa7_ajax_empty( 'Kit inventory unavailable' );
@@ -557,13 +587,6 @@ function hashe_fa7_ajax_catalog() {
         // families but only a partial icon inventory for one of them, naive
         // intersection could invent e.g. a Regular house selected only as
         // Solid. Fail closed rather than misrepresent that customer's choices.
-        if ( 'kit-css' === ( $kit['subset_mode'] ?? '' ) &&
-             count( $kit['family_styles'] ) > 1 &&
-             count( $selected ) < count( $names ) ) {
-            hashe_fa7_ajax_empty(
-                'Exact multi-style By Icon membership is not available from the Kit CSS'
-            );
-        }
         $names = $selected;
     }
     wp_send_json( array( 'icons' => $names ) );
