@@ -96,6 +96,12 @@ vm.runInNewContext(source, {window:w});
 assert.equal(library.__hasheFa7CallbackGuard, true);
 
 async function runTest() {
+    const cleaned = JSON.parse(raw.get('elementor'));
+    assert.ok(!Object.keys(cleaned).some(name => name.startsWith('elementor_hashe-fa7-')));
+    assert.equal(cleaned['elementor_fa-solid_icons'].data, unrelated.data);
+    assert.equal(Object.keys(cleaned.__expiration).length, 0);
+    console.log('PASS: Only stale Hashe icon caches are removed; Elementor settings remain intact.');
+
     assert.equal(config.icons.libraries.length,7,
         'Guard must restore exact seven canonical entries before any popup appears');
     assert.equal(new Set(config.icons.libraries.map(x=>x.name)).size,7);
@@ -118,11 +124,7 @@ async function runTest() {
     }
     console.log('PASS: A real picker-opening cycle restores exactly 7 distinct tabs despite out-of-order loads.');
 
-    const cleaned = JSON.parse(raw.get('elementor'));
-    assert.ok(!Object.keys(cleaned).some(name => name.startsWith('elementor_hashe-fa7-')));
-    assert.equal(cleaned['elementor_fa-solid_icons'].data, unrelated.data);
-    assert.equal(Object.keys(cleaned.__expiration).length, 0);
-    console.log('PASS: Only stale Hashe icon caches are removed; Elementor settings remain intact.');
+
 
     const prefixes = ['fas','far','fal','fat','fad','fadr','fadl','fadt','fass',
         'fasr','fasl','fast','fasds','fasdr','fasdl','fasdt'];
