@@ -29,9 +29,8 @@ foreach ( array( 'fa-solid-900', 'fa-regular-400', 'fa-brands-400' ) as $font ) 
 }
 $GLOBALS['test_kit_id'] = 'demo-kit-id';
 $pro = hashe_fa7_register_icon_tabs( $existing );
-check( 20 === count( $pro ), 'With Kit: three Free, sixteen Pro, and original' );
-check( isset( $pro['hashe-fa7-fasds'] ), 'Sharp Duotone Pro is registered' );
-check( false === $pro['hashe-fa7-free-solid']['url'], 'Kit renders Free' );
-check( false === $pro['hashe-fa7-fas']['url'], 'Kit renders Pro; no bundled Pro assets' );
+check( 1 === count( $pro ), 'Unrecognized Kit: no invented Free or Pro tabs' );
+check( ! isset( $pro['hashe-fa7-fasds'] ), 'Unverified Kit styles are not fabricated' );
+check( isset( $pro['existing-library'] ), 'Original library is still preserved' );
 check( 3781 === count( json_decode( file_get_contents( $dir . 'data/fas.json' ), true )['icons'] ), 'Pro names available' );
 echo "PASS: Free and Pro-Kit modes, catalogs, fonts, and library preservation." . PHP_EOL;
