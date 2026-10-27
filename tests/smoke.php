@@ -21,6 +21,7 @@ function sanitize_key( $key ) { return preg_replace( '/[^a-z0-9_\\-]/', '', strt
 function wp_unslash( $str ) { return stripslashes( $str ); }
 function wp_send_json( $data ) { throw new RuntimeException( 'JSON_OK:' . json_encode( $data ) ); }
 function wp_send_json_error( $message, $status = 200 ) { throw new RuntimeException( 'JSON_ERROR:' . $status . ':' . $message ); }
+function home_url( $path = '/' ) { return 'https://example.test/'; }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
 function wp_remote_retrieve_response_code( $response ) { return $response['code']; }
 function wp_remote_retrieve_body( $response ) { return $response['body']; }
