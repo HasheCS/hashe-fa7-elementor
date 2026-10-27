@@ -9,6 +9,38 @@ defined( 'ABSPATH' ) || exit;
 
 /** Bounded public HTTPS request. Never follow arbitrary URLs from Kit content. */
 function hashe_fa7_public_get( $url, $max_bytes = 4000000 ) {
+    // The Kit bootstrap supplies data, never destinations. Reject any other
+    // host, protocol, credentials, fragment or unexpected URL shape before
+    // WordPress makes an outbound request. Do not follow redirects.
+    if ( ! is_string( $url ) || strlen( $url ) > 500 ||
+         ! is_int( $max_bytes ) || $max_bytes < 1024 || $max_bytes > 6000000 ) {
+        return false;
+    }
+    $parsed = parse_url( $url );
+    if ( ! is_array( $parsed ) || 'https' !== ( $parsed['scheme'] ?? '' ) ||
+         isset( $parsed['user'] ) || isset( $parsed['pass'] ) ||
+         isset( $parsed['port'] ) || isset( $parsed['fragment'] ) ) {
+        return false;
+    }
+    $host = (string) ( $parsed['host'] ?? '' );
+    $path = (string) ( $parsed['path'] ?? '' );
+    $query = (string) ( $parsed['query'] ?? '' );
+    $allowed = false;
+    if ( 'kit.fontawesome.com' === $host ) {
+        $allowed = (bool) preg_match( '#^/[a-f0-9]{10}\\.js$#D', $path ) && '' === $query;
+    } elseif ( 'ka-p.fontawesome.com' === $host || 'ka-f.fontawesome.com' === $host ) {
+        $allowed = (bool) preg_match( '#^/assets/([a-f0-9]{10})/[0-9]+/kit\\.css$#D', $path, $matches ) &&
+            'token=' . $matches[1] === $query;
+    } elseif ( 'api.fontawesome.com' === $host ) {
+        $allowed = (bool) preg_match(
+            '#^/releases(?:/7\\.[0-9]+\\.[0-9]+/(?:family-styles|icons-minimal))?$#D',
+            $path
+        ) && ( '' === $query ||
+            (bool) preg_match( '/^page=[1-9][0-9]*&page_size=500$/D', $query ) );
+    }
+    if ( ! $allowed ) {
+        return false;
+    }
     $response = wp_remote_get( $url, array(
         'timeout' => 16,
         'redirection' => 0,
