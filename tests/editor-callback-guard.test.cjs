@@ -230,6 +230,25 @@ async function runTest() {
     assert.ok(JSON.parse(raw.get('elementor'))['elementor_fa-solid_icons']);
     console.log('PASS: Elementor built-in icon storage is not modified.');
 
+    // Elementor's native localStorage save can throw synchronously when a
+    // previous editor session has consumed the browser's quota. That error
+    // must not abort the React Icon Library mount or erase original icons.
+    const setter = localStorage.setItem;
+    localStorage.setItem = () => {
+        const error = new Error('The quota has been exceeded.');
+        error.name = 'QuotaExceededError';
+        throw error;
+    };
+    try {
+        const overflow = {name:'fa-light',ver:'7',icons:{moon:{selector:'fa-moon'}}};
+        store.save(overflow);
+        assert.ok(store.getIcons(overflow).moon,
+            'Native catalog must stay available in memory if disk cache is full');
+    } finally {
+        localStorage.setItem = setter;
+    }
+    console.log('PASS: Native quota errors no longer blank the Elementor Icon Library.');
+
     const php = fs.readFileSync(path.join(__dirname,'../hashe-fa7-elementor/hashe-fa7-elementor.php'),'utf8');
     assert.ok(!php.includes('hashe_fa7_editor_icon_names'));
     assert.ok(!php.includes("'icons'         =>"));
