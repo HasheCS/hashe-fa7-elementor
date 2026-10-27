@@ -97,7 +97,7 @@ function hashe_fa7_enqueue_editor_callback_guard() {
     // baseline. This includes native and third-party libraries and gives the
     // editor a safe way to recover when async callbacks corrupt its tab array.
     if ( class_exists( '\\Elementor\\Icons_Manager' ) ) {
-        $registered = \\Elementor\\Icons_Manager::get_icon_manager_tabs();
+        $registered = \Elementor\Icons_Manager::get_icon_manager_tabs();
         if ( is_array( $registered ) && $registered ) {
             $expected = array();
             $seen = array();
