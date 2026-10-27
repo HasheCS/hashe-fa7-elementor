@@ -82,6 +82,65 @@ function hashe_fa7_kit_snapshot( $kit_id ) {
         'error' => '',
     );
 
+    // An SVG/JS Kit without subsetPath uses Font Awesome's own full
+    // release bundle (startupFilename). A curated By Icon Kit instead uses
+    // a Kit-specific subset resource and MUST NOT be mistaken for Full.
+    // Only standard Free or Pro family-styles can be established from the
+    // official public release metadata; Pro+ Kit Packages aren't hosted.
+    $startup = (string) ( $config['startupFilename'] ?? '' );
+    $license = (string) ( $config['license'] ?? '' );
+    if ( 'js' === $method ) {
+        $snapshot['subset_mode'] = 'unverified';
+        if ( ! empty( $config['subsetPath'] ) ||
+             ! in_array( $startup, array( 'free.min.js', 'pro.min.js' ), true ) ||
+             ! in_array( $license, array( 'free', 'pro' ), true ) ||
+             ( 'free' === $license && 'free.min.js' !== $startup ) ||
+             ( 'pro' === $license && 'pro.min.js' !== $startup ) ) {
+            $snapshot['error'] = 'Exact SVG Kit subset cannot be verified from public metadata.';
+            set_transient( $key, $snapshot, 300 );
+            return $snapshot;
+        }
+        $public_metadata = hashe_fa7_public_get(
+            'https://api.fontawesome.com/releases/' . $snapshot['version'] . '/family-styles',
+            700000
+        );
+        $details = false === $public_metadata ? null : json_decode( $public_metadata, true );
+        if ( ! is_array( $details ) || ! is_array( $details['familyStyles'] ?? null ) ) {
+            $snapshot['error'] = 'Could not verify SVG release family styles.';
+            set_transient( $key, $snapshot, 300 );
+            return $snapshot;
+        }
+        $standard = array( 'classic', 'duotone', 'sharp', 'sharp-duotone' );
+        foreach ( $details['familyStyles'] as $entry ) {
+            if ( ! is_array( $entry ) || ! is_string( $entry['prefix'] ?? null ) ||
+                 ! preg_match( '/^[a-z0-9]+$/D', $entry['prefix'] ) ) {
+                continue;
+            }
+            $family = (string) ( $entry['family'] ?? '' );
+            $style = (string) ( $entry['style'] ?? '' );
+            if ( ! in_array( $family, $standard, true ) ||
+                 ( 'free' === $license &&
+                   ( 'classic' !== $family ||
+                     ! in_array( $style, array( 'solid', 'regular', 'brands' ), true ) ) ) ) {
+                continue;
+            }
+            $snapshot['family_styles'][$entry['prefix']] = array(
+                'family' => 'classic' === $family && 'brands' === $style ? 'brands' : $family,
+                'style' => $style,
+                'shorthand' => (string) ( $entry['shorthand'] ?? '' ),
+            );
+        }
+        if ( ! $snapshot['family_styles'] ) {
+            $snapshot['error'] = 'No eligible families found for full SVG Kit.';
+            set_transient( $key, $snapshot, 300 );
+            return $snapshot;
+        }
+        $snapshot['license'] = $license;
+        $snapshot['subset_mode'] = 'full';
+        set_transient( $key, $snapshot, 900 );
+        return $snapshot;
+    }
+
     // A By Style Web Fonts Kit exposes its actual selection through the hosted
     // subset stylesheet's @font-face declarations. Generic CSS class names
     // DO NOT represent its selected styles.
@@ -347,9 +406,15 @@ function hashe_fa7_ajax_catalog() {
     if ( false === $names ) {
         wp_send_json_error( 'Icon catalog temporarily unavailable', 503 );
     }
-    $names = hashe_fa7_filter_names_to_kit( $names, $kit );
-    if ( false === $names ) {
-        wp_send_json_error( 'Kit icon inventory unavailable', 503 );
+    if ( 'js' === ( $kit['method'] ?? '' ) &&
+         'full' === ( $kit['subset_mode'] ?? '' ) ) {
+        // The customer's licensed SVG bundle already contains the complete
+        // family-styles verified above. No Pro SVG paths are redistributed.
+    } else {
+        $names = hashe_fa7_filter_names_to_kit( $names, $kit );
+        if ( false === $names ) {
+            wp_send_json_error( 'Kit icon inventory unavailable', 503 );
+        }
     }
     wp_send_json( array( 'icons' => $names ) );
 }
