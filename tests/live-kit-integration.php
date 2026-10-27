@@ -35,6 +35,7 @@ function get_transient( $key ) { return $GLOBALS['hashe_transients'][$key] ?? fa
 function set_transient( $key, $value, $ttl ) { $GLOBALS['hashe_transients'][$key] = $value; return true; }
 function wp_create_nonce( $action ) { return 'unit-only-nonce'; }
 function check_ajax_referer( $action, $query_arg = false ) { return true; }
+function wp_parse_url( $url ) { return parse_url( $url ); }
 function home_url( $path = '/' ) { return 'https://dev.sasseagency.com/amari/'; }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
 function is_wp_error( $value ) { return false; }
