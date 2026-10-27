@@ -75,21 +75,52 @@
         if (!Array.isArray(expected) || !expected.length || !Array.isArray(existing)) {
             return false;
         }
+
         const names = new Set();
-        const pristine = [];
+        const canonical = [];
         expected.forEach(function (tab) {
             if (!tab || typeof tab.name !== 'string' || names.has(tab.name)) {
                 return;
             }
             names.add(tab.name);
-            pristine.push(Object.assign({}, tab));
+            canonical.push(Object.assign({}, tab));
         });
-        // Recommendations are created dynamically by Elementor itself.
-        // Never persist a previous picker session's recommended-tab mutation.
-        if (!pristine.length) {
+        if (!canonical.length) {
             return false;
         }
-        existing.splice.apply(existing, [0, existing.length].concat(pristine));
+
+        // Elementor itself may provide virtual "all" and "recommended" tabs,
+        // and other editor extensions can create additional libraries via JS.
+        // Preserve those existing tabs; only Hashe stale/invalid tab identities
+        // are excluded. Third-party entries registered via PHP are already in
+        // the authoritative array.
+        const extras = [];
+        existing.forEach(function (tab) {
+            if (!tab || typeof tab.name !== 'string' ||
+                names.has(tab.name) || tab.name.indexOf(prefix) === 0) {
+                return;
+            }
+            names.add(tab.name);
+            extras.push(tab);
+        });
+        const virtual = extras.filter(tab =>
+            tab.name === 'all' || tab.name === 'recommended');
+        const other = extras.filter(tab =>
+            tab.name !== 'all' && tab.name !== 'recommended');
+        const target = virtual.concat(canonical, other);
+
+        // Do not discard successfully loaded native or Kit icon data merely
+        // because a picker has been reopened. We only rebuild on an actual
+        // identity/label collision, not on every modal appearance.
+        const clean = target.length === existing.length &&
+            target.every(function (tab, index) {
+                return existing[index] && tab.name === existing[index].name &&
+                    tab.label === existing[index].label;
+            });
+        if (clean) {
+            return true;
+        }
+        existing.splice.apply(existing, [0, existing.length].concat(target));
         return true;
     }
 
