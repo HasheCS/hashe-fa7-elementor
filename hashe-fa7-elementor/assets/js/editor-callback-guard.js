@@ -61,6 +61,38 @@
         }
     }
 
+    /**
+     * The server is authoritative for tab identity. Elementor's React picker
+     * mutates config.icons.libraries in place while async catalogs arrive,
+     * and a stale callback can replace several *different* tabs with Brands.
+     * Restore pristine tab descriptors before every picker opening, retaining
+     * native and third-party libraries exactly as returned by Elementor.
+     */
+    function restoreExpectedTabs(editor) {
+        const expected = window.hasheFa7ExpectedTabs;
+        const config = editor && editor.config && editor.config.icons;
+        const existing = config && config.libraries;
+        if (!Array.isArray(expected) || !expected.length || !Array.isArray(existing)) {
+            return false;
+        }
+        const names = new Set();
+        const pristine = [];
+        expected.forEach(function (tab) {
+            if (!tab || typeof tab.name !== 'string' || names.has(tab.name)) {
+                return;
+            }
+            names.add(tab.name);
+            pristine.push(Object.assign({}, tab));
+        });
+        // Recommendations are created dynamically by Elementor itself.
+        // Never persist a previous picker session's recommended-tab mutation.
+        if (!pristine.length) {
+            return false;
+        }
+        existing.splice.apply(existing, [0, existing.length].concat(pristine));
+        return true;
+    }
+
     function install() {
         const editor = window.elementor;
         const manager = editor && editor.iconManager;
@@ -78,6 +110,7 @@
         }
 
         removeOldHasheCaches();
+        restoreExpectedTabs(editor);
 
         const originals = {
             save: store.save,
@@ -122,11 +155,25 @@
                 delete callbacks[settings.name];
                 return callback(settings);
             }
-            // Preserve Elementor's original behavior for events not registered
-            // through initIconType. Do not modify native icons or storage.
+            // A named async response with no registered owner must never be
+            // sent to Elementor's global *last callback*. That is how one
+            // Brands result can overwrite unrelated tab entries.
+            if (settings && typeof settings.name === 'string') {
+                return settings;
+            }
             return originals.run.apply(this, arguments);
         };
 
+        // Hook the true Elementor picker lifecycle, not just a mocked
+        // library call. A previously corrupted array must not persist between
+        // openings. The original onPickerShow may mutate this exact array.
+        if (typeof manager.onPickerShow === 'function') {
+            const open = manager.onPickerShow;
+            manager.onPickerShow = function () {
+                restoreExpectedTabs(editor);
+                return open.apply(this, arguments);
+            };
+        }
         library.__hasheFa7CallbackGuard = true;
         return true;
     }
@@ -135,7 +182,7 @@
         let attempts = 0;
         const timer = window.setInterval(function () {
             attempts += 1;
-            if (install() || attempts >= 120) {
+            if (install() || attempts >= 1200) {
                 window.clearInterval(timer);
             }
         }, 250);
