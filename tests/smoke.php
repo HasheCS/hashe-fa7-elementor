@@ -106,6 +106,9 @@ check( isset( $pro['hashe-fa7-fab'] ), 'Brands selected by Kit' );
 check( ! isset( $pro['hashe-fa7-fas'] ), 'Classic Solid omitted when not selected' );
 check( ! function_exists( 'hashe_fa7_native_compat_rules' ), 'Do not globally override Elementor native font classes' );
 check( ! function_exists( 'hashe_fa7_enqueue_native_compat' ), 'No site-wide Classic Pro fallback overrides' );
+check( array( 'github' ) === hashe_fa7_names_for_style( '7.3.1', 'fab', 'free' ), 'Free Kit Brands contain only free icon names' );
+check( array() === hashe_fa7_names_for_style( '7.3.1', 'fasdr', 'free' ), 'Free Kit excludes paid Sharp Duotone icon names' );
+check( array() === hashe_fa7_names_for_style( '7.3.1', 'fas', 'free' ), 'Free Kit excludes paid Classic Solid icon names' );
 echo "PASS: Kit catalogs, native libraries, safe editor integration without global styling.\n";
 
 $GLOBALS['hashe_transients'] = array();
