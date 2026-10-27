@@ -23,3 +23,14 @@ jobs:
           node-version: '20'
       - name: Check editor callback isolation
         run: node tests/editor-callback-guard.test.cjs
+
+      - name: Verify seven unique Elementor categories in actual Chromium DOM
+        run: |
+          BROWSER="$(command -v google-chrome || command -v chromium-browser)"
+          test -n "$BROWSER"
+          PROFILE="$(mktemp -d)"
+          trap 'rm -rf "$PROFILE"' EXIT
+          "$BROWSER" --headless=new --no-sandbox --disable-dev-shm-usage \
+            --virtual-time-budget=2500 --user-data-dir="$PROFILE" \
+            --dump-dom "file://$PWD/tests/browser-picker-integrity.html" 2>/dev/null \
+            | grep -F '<body data-fa7-qa="pass">'
