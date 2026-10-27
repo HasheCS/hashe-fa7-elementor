@@ -5,7 +5,7 @@
  * object. Caching 16 Pro catalogs there can exceed the browser quota and throw
  * QuotaExceededError, leaving the Icon Library blank or partially loaded.
  *
- * We only intercept our own libraries. Elementor's other caches are unchanged.
+ * Storage interception remains Hashe-only. Callback routing must include all\n * libraries: Elementor has one mutable notifyCallback shared by concurrent\n * fetches, so a late native response can otherwise invoke a Hashe callback.
  */
 (function () {
     'use strict';
@@ -61,6 +61,38 @@
         }
     }
 
+    /**
+     * The server is authoritative for tab identity. Elementor's React picker
+     * mutates config.icons.libraries in place while async catalogs arrive,
+     * and a stale callback can replace several *different* tabs with Brands.
+     * Restore pristine tab descriptors before every picker opening, retaining
+     * native and third-party libraries exactly as returned by Elementor.
+     */
+    function restoreExpectedTabs(editor) {
+        const expected = window.hasheFa7ExpectedTabs;
+        const config = editor && editor.config && editor.config.icons;
+        const existing = config && config.libraries;
+        if (!Array.isArray(expected) || !expected.length || !Array.isArray(existing)) {
+            return false;
+        }
+        const names = new Set();
+        const pristine = [];
+        expected.forEach(function (tab) {
+            if (!tab || typeof tab.name !== 'string' || names.has(tab.name)) {
+                return;
+            }
+            names.add(tab.name);
+            pristine.push(Object.assign({}, tab));
+        });
+        // Recommendations are created dynamically by Elementor itself.
+        // Never persist a previous picker session's recommended-tab mutation.
+        if (!pristine.length) {
+            return false;
+        }
+        existing.splice.apply(existing, [0, existing.length].concat(pristine));
+        return true;
+    }
+
     function install() {
         const editor = window.elementor;
         const manager = editor && editor.iconManager;
@@ -78,6 +110,7 @@
         }
 
         removeOldHasheCaches();
+        restoreExpectedTabs(editor);
 
         const originals = {
             save: store.save,
@@ -104,22 +137,43 @@
         };
 
         library.initIconType = function (settings, callback) {
-            if (settings && ownsLibrary(settings.name) && typeof callback === 'function') {
+            // Elementor 4.x stores only one global notifyCallback, even when
+            // different libraries are fetched concurrently. Register the
+            // callback by library name for *native and Hashe* tabs alike so
+            // neither can consume the other's response.
+            if (settings && typeof settings.name === 'string' &&
+                typeof callback === 'function') {
                 callbacks[settings.name] = callback;
             }
             return originals.init.apply(this, arguments);
         };
 
         library.runCallback = function (settings) {
-            if (settings && ownsLibrary(settings.name) &&
+            if (settings && typeof settings.name === 'string' &&
                 Object.prototype.hasOwnProperty.call(callbacks, settings.name)) {
                 const callback = callbacks[settings.name];
                 delete callbacks[settings.name];
                 return callback(settings);
             }
+            // A named async response with no registered owner must never be
+            // sent to Elementor's global *last callback*. That is how one
+            // Brands result can overwrite unrelated tab entries.
+            if (settings && typeof settings.name === 'string') {
+                return settings;
+            }
             return originals.run.apply(this, arguments);
         };
 
+        // Hook the true Elementor picker lifecycle, not just a mocked
+        // library call. A previously corrupted array must not persist between
+        // openings. The original onPickerShow may mutate this exact array.
+        if (typeof manager.onPickerShow === 'function') {
+            const open = manager.onPickerShow;
+            manager.onPickerShow = function () {
+                restoreExpectedTabs(editor);
+                return open.apply(this, arguments);
+            };
+        }
         library.__hasheFa7CallbackGuard = true;
         return true;
     }
@@ -128,7 +182,7 @@
         let attempts = 0;
         const timer = window.setInterval(function () {
             attempts += 1;
-            if (install() || attempts >= 120) {
+            if (install() || attempts >= 1200) {
                 window.clearInterval(timer);
             }
         }, 250);
