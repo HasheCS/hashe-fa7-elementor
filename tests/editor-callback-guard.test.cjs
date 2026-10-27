@@ -65,7 +65,33 @@ const library = {
     }
 };
 
-const w = {elementor:{iconManager:{library,store}}, localStorage, setInterval, clearInterval};
+const expectedTabs = [
+    {name:'fa-regular', label:'Font Awesome - Regular Pro',delay:34},
+    {name:'fa-solid', label:'Font Awesome - Solid Pro',delay:6},
+    {name:'fa-brands', label:'Font Awesome - Brands Pro',delay:45},
+    {name:'fa-light', label:'Font Awesome - Light Pro',delay:21},
+    {name:'fa-duotone', label:'Font Awesome - Duotone Pro',delay:12},
+    {name:'hashe-fa7-fab', label:'Font Awesome 7.3.1 Kit - Brands',delay:28},
+    {name:'hashe-fa7-fasdr', label:'Font Awesome 7.3.1 Kit - Sharp Duotone Regular',delay:1}
+];
+const config = {icons:{libraries:[
+    ...expectedTabs.slice(0,5),
+    ...Array.from({length:12}, (_,i) => ({
+        name:'hashe-fa7-bogus-' + i,label:'Font Awesome 7.3.1 Kit - Brands',delay:i+1
+    }))
+]}};
+const manager = {library,store,
+    // Mirrors Elementor 4.3.5 onPickerShow() closure: asynchronous callbacks
+    // replace config.icons.libraries[index] after render.
+    onPickerShow() {
+        const icons = config.icons.libraries;
+        icons.forEach((tab,index) => {
+            library.initIconType({...tab}, lib => { icons[index] = lib; });
+        });
+    }
+};
+const w = {elementor:{iconManager:manager,config},hasheFa7ExpectedTabs:expectedTabs,
+    localStorage,setInterval,clearInterval};
 vm.runInNewContext(source, {window:w});
 assert.equal(library.__hasheFa7CallbackGuard, true);
 
@@ -75,6 +101,30 @@ async function runTest() {
     assert.equal(cleaned['elementor_fa-solid_icons'].data, unrelated.data);
     assert.equal(Object.keys(cleaned.__expiration).length, 0);
     console.log('PASS: Only stale Hashe icon caches are removed; Elementor settings remain intact.');
+
+    assert.equal(config.icons.libraries.length,7,
+        'Guard must restore exact seven canonical entries before any popup appears');
+    assert.equal(new Set(config.icons.libraries.map(x=>x.name)).size,7);
+    assert.deepEqual(config.icons.libraries.map(x=>x.name),expectedTabs.map(x=>x.name));
+    assert.equal(config.icons.libraries[6].label,
+        'Font Awesome 7.3.1 Kit - Sharp Duotone Regular');
+    console.log('PASS: Repeated Brands labels are replaced by 5 native plus 2 correct Kit identities.');
+
+    // Corruption can recur when modal has already been opened. Every
+    // subsequent actual onPickerShow must restore the server tab identity.
+    config.icons.libraries.splice(0,config.icons.libraries.length,
+        ...Array.from({length:12},()=>({name:'hashe-fa7-fab',label:'Font Awesome 7.3.1 Kit - Brands'})));
+    manager.onPickerShow();
+    assert.equal(config.icons.libraries.length,7);
+    await new Promise(resolve=>setTimeout(resolve,90));
+    for(let i=0;i<7;i++){
+        assert.equal(config.icons.libraries[i].name,expectedTabs[i].name,
+            'Async response must not replace an unrelated tab with Brands');
+        assert.equal(config.icons.libraries[i].label,expectedTabs[i].label);
+    }
+    console.log('PASS: A real picker-opening cycle restores exactly 7 distinct tabs despite out-of-order loads.');
+
+
 
     const prefixes = ['fas','far','fal','fat','fad','fadr','fadl','fadt','fass',
         'fasr','fasl','fast','fasds','fasdr','fasdl','fasdt'];
