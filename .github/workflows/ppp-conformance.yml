@@ -84,6 +84,18 @@ jobs:
             --dump-dom "file://$PWD/tests/browser-free-fonts.html" 2>/dev/null \
             | grep -F '<body data-fa7-free-qa="pass">'
 
+  live-svg-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify actual licensed SVG Kit renders inline icons on authorized public site
+        run: |
+          node --experimental-websocket tests/live-svg-browser.cjs
+
   release-governance:
     runs-on: ubuntu-latest
     timeout-minutes: 6
