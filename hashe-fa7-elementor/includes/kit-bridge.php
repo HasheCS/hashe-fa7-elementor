@@ -241,7 +241,9 @@ function hashe_fa7_kit_snapshot( $kit_id ) {
         }
     }
     if ( 'kit-css' === $snapshot['subset_mode'] &&
-         $recognized_faces > 0 && $all_standard_font_faces ) {
+         $recognized_faces > 0 &&
+         $recognized_faces === count( $blocks[1] ) &&
+         $all_standard_font_faces ) {
         $snapshot['subset_mode'] = 'full-family-fonts';
     }
     if ( ! $enabled ) {
