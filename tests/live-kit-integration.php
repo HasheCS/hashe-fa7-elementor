@@ -65,6 +65,7 @@ $base = array( 'existing-library' => array( 'name' => 'existing-library' ) );
 $kit = hashe_fa7_kit_snapshot( '23f6a60c28' );
 assert_kit( is_array( $kit ) && empty( $kit['error'] ), 'Kit response and stylesheet discovery' );
 assert_kit( 'css' === $kit['method'], 'Web Fonts mode identified' );
+assert_kit( 'full-family-fonts' === $kit['subset_mode'], 'Actual By Style Kit exclusively uses complete release WOFF2 files' );
 assert_kit( is_array( $kit['icon_names'] ?? null ) && count( $kit['icon_names'] ) > 4000, 'Real Kit CSS exposes full hosted icon selector inventory' );
 $prefixes = array_keys( $kit['family_styles'] );
 sort( $prefixes );
