@@ -89,7 +89,7 @@ function hashe_fa7_enqueue_editor_callback_guard() {
         'hashe-fa7-editor-callback-guard',
         plugins_url( 'assets/js/editor-callback-guard.js', __FILE__ ),
         array( 'elementor-editor' ),
-        '1.1.0-beta.2',
+        filemtime( plugin_dir_path( __FILE__ ) . 'assets/js/editor-callback-guard.js' ),
         true
     );
 }
