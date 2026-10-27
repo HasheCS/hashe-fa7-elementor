@@ -128,6 +128,7 @@ check( false !== strpos( $compat['solid'], 'Hashe Elementor Native Solid' ), 'Cl
 check( false !== strpos( $compat['regular'], 'Hashe Elementor Native Regular' ), 'Classic Regular prefers licensed Free font' );
 check( false !== strpos( $compat['light-fallback'], 'Sharp Duotone' ), 'Unselected Light uses explicitly documented Kit style fallback' );
 check( false !== strpos( $compat['duotone-fallback'], 'Sharp Duotone' ), 'Unselected Duotone uses explicitly documented Kit style fallback' );
+check( false !== strpos( $compat['duotone-fallback'], '::after' ) && false !== strpos( $compat['duotone-fallback'], 'display:none' ), 'Duotone fallback suppresses second pseudo-element to avoid doubled icon' );
 hashe_fa7_enqueue_native_compat();
 check( 'hashe-fa7-native-compat' === ( $GLOBALS['style_enqueued']['handle'] ?? '' ), 'Editor and frontend native compatibility stylesheet enqueued' );
 check( false !== strpos( $GLOBALS['style_inline']['css'], 'Hashe Elementor Native Regular' ), 'Only required legacy selectors are emitted' );
