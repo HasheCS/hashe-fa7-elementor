@@ -5,7 +5,7 @@
  * object. Caching 16 Pro catalogs there can exceed the browser quota and throw
  * QuotaExceededError, leaving the Icon Library blank or partially loaded.
  *
- * We only intercept our own libraries. Elementor's other caches are unchanged.
+ * Storage interception remains Hashe-only. Callback routing must include all\n * libraries: Elementor has one mutable notifyCallback shared by concurrent\n * fetches, so a late native response can otherwise invoke a Hashe callback.
  */
 (function () {
     'use strict';
@@ -104,19 +104,26 @@
         };
 
         library.initIconType = function (settings, callback) {
-            if (settings && ownsLibrary(settings.name) && typeof callback === 'function') {
+            // Elementor 4.x stores only one global notifyCallback, even when
+            // different libraries are fetched concurrently. Register the
+            // callback by library name for *native and Hashe* tabs alike so
+            // neither can consume the other's response.
+            if (settings && typeof settings.name === 'string' &&
+                typeof callback === 'function') {
                 callbacks[settings.name] = callback;
             }
             return originals.init.apply(this, arguments);
         };
 
         library.runCallback = function (settings) {
-            if (settings && ownsLibrary(settings.name) &&
+            if (settings && typeof settings.name === 'string' &&
                 Object.prototype.hasOwnProperty.call(callbacks, settings.name)) {
                 const callback = callbacks[settings.name];
                 delete callbacks[settings.name];
                 return callback(settings);
             }
+            // Preserve Elementor's original behavior for events not registered
+            // through initIconType. Do not modify native icons or storage.
             return originals.run.apply(this, arguments);
         };
 
