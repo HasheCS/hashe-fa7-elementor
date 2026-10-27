@@ -361,3 +361,11 @@ try {
         'Full By Style family uses public release membership rather than global CSS icon union' );
 }
 echo "PASS: Full release font URLs distinguish By Style from ambiguous multi-style By Icon subset.\n";
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_kit_css'] .=
+    '@font-face{font-family:"Custom Icon Library";font-weight:400;' .
+    'src:url(https://ka-p.fontawesome.com/assets/23f6a60c28/001/custom.woff2)}';
+$mixed = hashe_fa7_kit_snapshot( '23f6a60c28' );
+check( 'kit-css' === $mixed['subset_mode'],
+    'A custom or unsupported face prevents incorrectly assuming all By Style font assets are complete' );
+
