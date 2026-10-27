@@ -69,7 +69,9 @@ function wp_remote_get( $url, $options ) {
             array( 'family' => 'classic', 'style' => 'brands', 'shorthand' => 'brands', 'prefix' => 'fab' ),
             array( 'family' => 'sharp-duotone', 'style' => 'regular', 'shorthand' => 'sharp-duotone-regular', 'prefix' => 'fasdr' ),
             array( 'family' => 'classic', 'style' => 'light', 'shorthand' => 'light', 'prefix' => 'fal' ),
-            array( 'family' => 'classic', 'style' => 'solid', 'shorthand' => 'solid', 'prefix' => 'fas' )
+            array( 'family' => 'classic', 'style' => 'solid', 'shorthand' => 'solid', 'prefix' => 'fas' ),
+            array( 'family' => 'notdog', 'style' => 'solid', 'shorthand' => 'notdog-solid', 'prefix' => 'fans' ),
+            array( 'family' => 'whiteboard', 'style' => 'semibold', 'shorthand' => 'whiteboard-semibold', 'prefix' => 'fawsb' )
         ) ) ) );
     }
     if ( preg_match( '#^https://api\\.fontawesome\\.com/releases/7\\.3\\.1/icons-minimal\\?page=([0-9]+)&page_size=500$#D', $url, $matches ) ) {
@@ -265,3 +267,21 @@ try {
         'One-style By Icon cannot list an unselected icon' );
 }
 echo "PASS: CSS By Icon mode supports exact one-style selection and rejects ambiguous multi-style selections.\\n";
+
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_kit_method'] = 'css';
+$GLOBALS['mock_kit_subset'] = true;
+$GLOBALS['mock_kit_license'] = 'pro';
+$GLOBALS['mock_kit_css'] =
+    '@font-face{font-family:"Font Awesome 7 Notdog";font-weight:900}' .
+    '@font-face{font-family:"Font Awesome 7 Whiteboard";font-weight:600}' .
+    '.fa-cat{--fa:"X"}';
+$pro_plus_kit = hashe_fa7_kit_snapshot( '23f6a60c28' );
+check( isset( $pro_plus_kit['family_styles']['fans'] ), 'Notdog Solid Pro Plus style discovered from this Kit only' );
+check( isset( $pro_plus_kit['family_styles']['fawsb'] ), 'Whiteboard Semibold Pro Plus style discovered dynamically' );
+check( ! isset( $pro_plus_kit['family_styles']['fas'] ), 'Pro Classic Solid is not invented for a Pro Plus-only selected Kit' );
+$pro_plus_tabs = hashe_fa7_register_icon_tabs( array() );
+check( 2 === count( $pro_plus_tabs ), 'Pro Plus-only Kit creates only the two enabled families' );
+check( false !== strpos( $pro_plus_tabs['hashe-fa7-fawsb']['label'], 'Whiteboard Semibold' ),
+    'Pro Plus category label maps family and semibold style accurately' );
+echo "PASS: Pro Plus family-style discovery is based on hosted Kit fonts, not a generic Pro ID.\\n";
