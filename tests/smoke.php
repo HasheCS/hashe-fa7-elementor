@@ -1,5 +1,6 @@
 <?php
 define( 'ABSPATH', __DIR__ );
+define( 'DAY_IN_SECONDS', 86400 );
 $GLOBALS['test_kit_id'] = '';
 $GLOBALS['registered_filter'] = null;
 $GLOBALS['hashe_transients'] = array();
