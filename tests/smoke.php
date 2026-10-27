@@ -299,3 +299,33 @@ hashe_fa7_unschedule_refresh();
 check( ! wp_next_scheduled( 'hashe_fa7_refresh_catalog' ),
     'Deactivation cleans up the background catalog prewarm event' );
 echo "PASS: Single recurring catalog refresh job and deactivation cleanup.\\n";
+
+$GLOBALS['test_kit_id'] = '23f6a60c28';
+$GLOBALS['mock_kit_method'] = 'css';
+$GLOBALS['mock_kit_license'] = 'pro';
+$GLOBALS['mock_kit_subset'] = true;
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_kit_css'] =
+    '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}' .
+    '@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400}' .
+    '.fa-github{--fa:"X"}.fa-leaf{--fa:"Y"}';
+$before = hashe_fa7_register_icon_tabs( $existing );
+check( 3 === count( $before ) && isset( $before['hashe-fa7-fab'] ) &&
+       isset( $before['hashe-fa7-fasdr'] ), 'Original two Kit styles detected' );
+$GLOBALS['mock_kit_css'] .=
+    '@font-face{font-family:"Font Awesome 7 Pro";font-weight:900}' .
+    '.fa-star{--fa:"Z"}';
+unset( $GLOBALS['hashe_transients']['hashe_fa7_kit_' . md5( '23f6a60c28' )] );
+$added = hashe_fa7_register_icon_tabs( $existing );
+check( 4 === count( $added ) && isset( $added['hashe-fa7-fas'] ) &&
+       isset( $added['hashe-fa7-fasdr'] ), 'A new selected Kit style becomes available after Kit snapshot expires' );
+$GLOBALS['mock_kit_css'] = 
+    '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}' .
+    '@font-face{font-family:"Font Awesome 7 Pro";font-weight:900}' .
+    '.fa-github{--fa:"X"}.fa-star{--fa:"Y"}';
+unset( $GLOBALS['hashe_transients']['hashe_fa7_kit_' . md5( '23f6a60c28' )] );
+$removed = hashe_fa7_register_icon_tabs( $existing );
+check( 3 === count( $removed ) && isset( $removed['hashe-fa7-fas'] ) &&
+       ! isset( $removed['hashe-fa7-fasdr'] ), 'Removed Kit style no longer appears after refresh' );
+check( isset( $removed['existing-library'] ), 'Kit changes never remove any native Elementor category' );
+echo "PASS: Adding and removing Kit styles updates only Hashe tabs after snapshot refresh.\\n";
