@@ -68,6 +68,23 @@ function hashe_fa7_kit_snapshot( $kit_id ) {
         return $snapshot;
     }
 
+    // Intersect the public release's style catalog with actual icon selectors
+    // emitted by this customer's Web Fonts Kit. Includes comma-grouped aliases.
+    preg_match_all( '/((?:\.fa-[a-z0-9-]+\s*,?\s*)+)\{\s*--fa\s*:/', $css, $icon_rules );
+    $kit_icons = array();
+    foreach ( $icon_rules[1] as $selectors ) {
+        preg_match_all( '/\.fa-([a-z0-9-]+)/', $selectors, $names );
+        foreach ( $names[1] as $icon_name ) {
+            $kit_icons[$icon_name] = true;
+        }
+    }
+    if ( ! $kit_icons ) {
+        $snapshot['error'] = 'Kit stylesheet did not expose an icon-name inventory.';
+        set_transient( $key, $snapshot, 300 );
+        return $snapshot;
+    }
+    $snapshot['icon_names'] = $kit_icons;
+
     preg_match_all( '/@font-face\s*\{([^}]+)\}/i', $css, $blocks );
     $enabled = array();
     $weights = array( '100' => 'thin', '300' => 'light', '400' => 'regular', '600' => 'semibold', '900' => 'solid' );
@@ -265,6 +282,24 @@ function hashe_fa7_names_for_style( $version, $prefix ) {
     return is_array( $catalog ) && isset( $catalog[$prefix] ) ? $catalog[$prefix] : false;
 }
 
+/**
+ * Restrict candidate names to this Kit's hosted Web Fonts icon inventory.
+ * Future SVG/JS inventory discovery must use its separately verified source.
+ */
+function hashe_fa7_filter_names_to_kit( $names, $kit ) {
+    if ( ! is_array( $names ) || ! is_array( $kit ) ||
+         ! is_array( $kit['icon_names'] ?? null ) ) {
+        return false;
+    }
+    $filtered = array();
+    foreach ( $names as $name ) {
+        if ( isset( $kit['icon_names'][$name] ) ) {
+            $filtered[] = $name;
+        }
+    }
+    return $filtered;
+}
+
 /** Called by Elementor's per-category fetchJson request. */
 function hashe_fa7_ajax_catalog() {
     if ( ! current_user_can( 'edit_posts' ) ) {
@@ -279,6 +314,10 @@ function hashe_fa7_ajax_catalog() {
     $names = hashe_fa7_names_for_style( $kit['version'], $style );
     if ( false === $names ) {
         wp_send_json_error( 'Icon catalog temporarily unavailable', 503 );
+    }
+    $names = hashe_fa7_filter_names_to_kit( $names, $kit );
+    if ( false === $names ) {
+        wp_send_json_error( 'Kit icon inventory unavailable', 503 );
     }
     wp_send_json( array( 'icons' => $names ) );
 }
