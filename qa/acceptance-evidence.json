@@ -32,7 +32,7 @@
     {
       "id": "T04",
       "status": "pending",
-      "evidence": "2026-10-27 real Amari WordPress CLI editor-mode A/B with Hashe loaded vs --skip-plugins: five native Pro tabs have identical names, prefixes, url=false; Elementor Pro replaces them and enqueues Kit. Kit has only Brands/400 and Sharp Duotone/400. Browser rendering of native glyphs with plugin skipped is not yet proven; leave T04 pending.",
+      "evidence": "2026-10-27: Real Elementor editor JS has one mutable notifyCallback for concurrent native/Hashe icon loads. Regression fix uses per-library callback routing for all tab names and Hashe-only storage. Node tests for all five native Pro tabs passing. Deployed rollback-protected JS + asset-cache-version patch to Amari. Post-deploy WP-CLI shows 5 native + 2 Hashe, Kit unchanged; direct JS HTTP 200 confirmed. Logged-in browser visual tile and saved-widget signoff not yet observed.",
       "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-native-pro-ppp-root-cause-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
