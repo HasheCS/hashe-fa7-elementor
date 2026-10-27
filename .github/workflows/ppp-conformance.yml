@@ -33,6 +33,20 @@ jobs:
       - name: Elementor localStorage callback regression tests
         run: node --test tests/editor-callback-guard.test.cjs
 
+  live-kit-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+      - name: Verify public by-style Kit and real per-style release icon membership
+        run: |
+          php -l tests/live-kit-integration.php
+          php tests/live-kit-integration.php
+
   release-governance:
     runs-on: ubuntu-latest
     timeout-minutes: 6
