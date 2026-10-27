@@ -8,6 +8,12 @@ define( 'DAY_IN_SECONDS', 86400 );
 $GLOBALS['test_kit_id'] = '23f6a60c28';
 $GLOBALS['hashe_transients'] = array();
 function add_filter( $name, $callback, $priority = 10 ) {}
+$GLOBALS['hashe_test_schedule'] = array();
+function wp_next_scheduled( $name ) { return $GLOBALS['hashe_test_schedule'][$name] ?? false; }
+function wp_schedule_event( $time, $recurrence, $name ) { $GLOBALS['hashe_test_schedule'][$name] = $time; return true; }
+function wp_clear_scheduled_hook( $name ) { unset( $GLOBALS['hashe_test_schedule'][$name] ); return 1; }
+function register_activation_hook( $file, $callback ) { $GLOBALS['hashe_activation'] = $callback; }
+function register_deactivation_hook( $file, $callback ) { $GLOBALS['hashe_deactivation'] = $callback; }
 function add_action( $name, $callback, $priority = 10 ) {}
 function plugin_dir_path( $file ) { return dirname( $file ) . '/'; }
 function plugin_dir_url( $file ) { return 'https://example.test/plugins/' . basename( dirname( $file ) ) . '/'; }
