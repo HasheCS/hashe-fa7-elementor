@@ -124,6 +124,24 @@ async function runTest() {
     }
     console.log('PASS: A real picker-opening cycle restores exactly 7 distinct tabs despite out-of-order loads.');
 
+    const referenceArray = config.icons.libraries;
+    const nativeCachedIcons = config.icons.libraries[0].icons;
+    manager.onPickerShow();
+    assert.equal(config.icons.libraries,referenceArray,'Do not replace Elementor array identity');
+    assert.equal(config.icons.libraries[0].icons,nativeCachedIcons,
+        'Do not discard healthy native icons on modal reopening');
+    const thirdParty = {name:'outside-provider-icons',label:'Other Icon Provider',icons:['logo']};
+    const virtualAll = {name:'all',label:'All Icons'};
+    config.icons.libraries.push(thirdParty);
+    config.icons.libraries.unshift(virtualAll);
+    manager.onPickerShow();
+    assert.equal(config.icons.libraries.length,9);
+    assert.equal(config.icons.libraries[0].name,'all');
+    assert.equal(config.icons.libraries[8].name,'outside-provider-icons');
+    assert.equal(new Set(config.icons.libraries.map(x=>x.name)).size,9);
+    console.log('PASS: Virtual and third-party tabs survive; healthy native catalog is not reset.');
+
+
 
 
     const prefixes = ['fas','far','fal','fat','fad','fadr','fadl','fadt','fass',
