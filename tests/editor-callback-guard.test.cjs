@@ -90,6 +90,9 @@ const manager = {library,store,
         });
     }
 };
+// Simulate Elementor's modal listener being bound before Hashe loads.
+const preexistingModalListener = manager.onPickerShow.bind(manager);
+manager.show = () => preexistingModalListener();
 const w = {elementor:{iconManager:manager,config},hasheFa7ExpectedTabs:expectedTabs,
     localStorage,setInterval,clearInterval};
 vm.runInNewContext(source, {window:w});
@@ -140,6 +143,18 @@ async function runTest() {
     assert.equal(config.icons.libraries[8].name,'outside-provider-icons');
     assert.equal(new Set(config.icons.libraries.map(x=>x.name)).size,9);
     console.log('PASS: Virtual and third-party tabs survive; healthy native catalog is not reset.');
+
+    config.icons.libraries.splice(0, config.icons.libraries.length,
+        ...Array.from({length:13},()=>({name:'hashe-fa7-fab',
+            label:'Font Awesome 7.3.1 Kit - Brands'})));
+    manager.show(); // Calls listener bound before guard installation.
+    await new Promise(resolve=>setTimeout(resolve,100));
+    assert.equal(config.icons.libraries.length,7);
+    assert.deepEqual(config.icons.libraries.map(x=>x.name),
+        expectedTabs.map(x=>x.name));
+    console.log('PASS: Existing pre-bound Elementor modal listener still receives seven canonical category identities.');
+
+
 
 
 
