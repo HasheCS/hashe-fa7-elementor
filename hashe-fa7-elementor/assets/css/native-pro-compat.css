@@ -28,16 +28,4 @@
   font-weight: 400;
   font-display: block;
 }
-.fas:not(.fa-sharp-duotone):not(.fa-sharp) {
-  font-family: "Hashe Elementor Native Solid", "Font Awesome 7 Sharp Duotone" !important;
-  font-weight: 900 !important;
-}
-.far:not(.fa-sharp-duotone):not(.fa-sharp) {
-  font-family: "Hashe Elementor Native Regular", "Font Awesome 7 Sharp Duotone" !important;
-  font-weight: 400 !important;
-}
-.fal:not(.fa-sharp-duotone):not(.fa-sharp),
-.fad:not(.fa-sharp-duotone):not(.fa-sharp) {
-  font-family: "Font Awesome 7 Sharp Duotone" !important;
-  font-weight: 400 !important;
-}
+/* Per-style compatibility selectors are injected only when that Classic family is absent from the Kit. */
