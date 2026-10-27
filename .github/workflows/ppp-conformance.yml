@@ -84,6 +84,17 @@ jobs:
             --dump-dom "file://$PWD/tests/browser-free-fonts.html" 2>/dev/null \
             | grep -F '<body data-fa7-free-qa="pass">'
 
+  live-css-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify current two-style Kit CSS WOFF2 icon glyphs in real browser
+        run: node --experimental-websocket tests/live-css-browser.cjs
+
   live-svg-browser:
     runs-on: ubuntu-latest
     timeout-minutes: 4
