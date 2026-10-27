@@ -136,7 +136,9 @@ function hashe_fa7_native_compat_rules( $kit ) {
     if ( $has_sharp_duotone && ! isset( $available['fad'] ) ) {
         $rules['duotone-fallback'] = '.fad:not(.fa-sharp-duotone):not(.fa-sharp) {' .
             'font-family:"Font Awesome 7 Sharp Duotone" !important;' .
-            'font-weight:400 !important;}';
+            'font-weight:400 !important;} ' .
+            '.fad:not(.fa-sharp-duotone):not(.fa-sharp)::after {' .
+            'content:none !important;display:none !important;}';
     }
     return $rules;
 }
