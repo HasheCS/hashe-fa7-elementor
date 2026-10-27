@@ -4,6 +4,7 @@
  * Runs only in CI; never changes WordPress or any Kit.
  */
 define( 'ABSPATH', __DIR__ );
+define( 'DAY_IN_SECONDS', 86400 );
 $GLOBALS['test_kit_id'] = '23f6a60c28';
 $GLOBALS['hashe_transients'] = array();
 function add_filter( $name, $callback, $priority = 10 ) {}
