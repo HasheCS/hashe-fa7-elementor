@@ -43,6 +43,23 @@ class GateTests(unittest.TestCase):
             file.write_text(json.dumps({"checks":checks}), encoding="utf-8")
             self.assertEqual([], gate.evaluate(file))
 
+    def test_failed_visual_acceptance_is_first_class_release_blocker(self):
+        checks = [
+            {"id": "T%02d" % i, "status": "pass",
+             "evidence": "Verified browser and frontend test with preserved output",
+             "url": "https://example.test/qa"}
+            for i in range(1, 25)
+        ]
+        checks[1].update({"status": "fail",
+                          "evidence": "User's real Elementor screenshot shows duplicate Brands tabs",
+                          "url": "https://example.test/qa-failure"})
+        with tempfile.TemporaryDirectory() as tmp:
+            file = Path(tmp) / "acceptance.json"
+            file.write_text(json.dumps({"checks": checks}), encoding="utf-8")
+            blocked = gate.evaluate(file)
+            self.assertIn("T02 failed acceptance", blocked)
+            self.assertEqual(1, len(blocked))
+
     def test_duplicate_or_missing_ids_are_rejected(self):
         with tempfile.TemporaryDirectory() as tmp:
             file = Path(tmp) / "bad.json"
