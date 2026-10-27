@@ -51,7 +51,13 @@ function hashe_fa7_public_get( $url, $max_bytes = 4000000 ) {
         'timeout' => 16,
         'redirection' => 0,
         'limit_response_size' => $max_bytes + 1,
-        'headers' => array( 'Accept' => '*/*' ),
+        'headers' => array(
+            'Accept' => '*/*',
+            // Domain-restricted Kits require a legitimate same-site Referer.
+            // Use only this WordPress installation's own home URL; never a
+            // hardcoded customer's site or user-supplied external Referer.
+            'Referer' => home_url( '/' ),
+        ),
     ) );
     if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
         return false;
