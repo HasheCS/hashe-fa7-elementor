@@ -4,75 +4,80 @@ Tags: elementor, icons, font-awesome, icon-library, fontawesome
 Requires at least: 6.2
 Requires PHP: 7.4
 Requires Plugins: elementor
-Stable tag: 1.1.0-beta.2
+Stable tag: 1.1.0-qa.20261027
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Amari test beta: Free icon catalogs without a Kit; with an Elementor Kit ID, inspect the Kit's selected Web Font styles and register only matching names-only catalogs.
+Development-only integrated Font Awesome 7 Kit discovery for Elementor. Do NOT present this branch as a complete, signed-off installer.
 
 == Description ==
 
-BETA WARNING: This 1.1.0-beta.2 package is intended for controlled testing on Amari only. It is not the public recommended release. The plugin adds searchable Font Awesome 7.3.1 Free catalogs, including licensed Free CSS and webfonts, without requiring an account or Kit.
+The Hashe plugin adds Font Awesome 7 icon catalogs to Elementor's existing Icon Library. It does not modify Elementor core or require a second customer account, license selector, API token or configuration.
 
-When an existing Font Awesome Kit ID is configured in Elementor, this beta reads its public Javascript Kit configuration and selected Web Font stylesheet. It registers only family styles detected through that stylesheet. Only names are registered; Font Awesome remains responsible for serving licensed fonts. Changes to a Kit are rechecked after a short cache interval (up to 15 minutes) when the Elementor editor is reopened.
+WITHOUT an Elementor Font Awesome Kit ID, it offers three packaged Font Awesome 7.3.1 Free catalogs: Solid, Regular and Brands, with matched Free webfonts and CSS.
 
-Web Fonts by-style Kits are the test target. SVG Kits, by-icon subsets and custom uploaded icon sets are NOT YET SUPPORTED or verified in this beta. If selected styles cannot be read, the beta registers no Kit-specific tabs; it does not assume a Pro license.
+WITH an existing Font Awesome Kit ID (configured in Elementor's native integrations), it reads the public Kit bootstrap and official version-specific Font Awesome release metadata:
 
-No Pro glyphs, Pro font files, Pro CSS or private credentials are included. Elementor core files and existing icon libraries are not replaced.
+* For Web Fonts with a JS Kit embed: discovers selected styles from the Kit stylesheet font-face rules. The JavaScript EMBED does not imply SVG delivery.
+* For a full Web Fonts Kit: uses the hosted full CSS when the Kit does not contain a subset path.
+* For a Kit-subsetted Web Fonts style: intersects release-specific icon names with the public Kit CSS icon names.
+* For a By Icon Kit involving only one style: filters to the individually listed names. A multi-style By Icon Kit can publish a global CSS icon-name map without exact per-style membership; the plugin rejects ambiguous catalog requests rather than creating misleading icons.
+* For a full SVG+JS Pro/Free Kit: recognizes the Kit's official full-release startup JS bundle and registers verified standard family-styles from public Font Awesome metadata. A custom subsetted SVG Kit is not presumed to include all icons or styles.
+* Pro Plus-only families are not inferred from an ordinary Pro entitlement; eligible styles depend on the Kit's actual hosted assets.
 
-The plugin requires an active Elementor installation. Elementor Pro is not required for standalone Free catalogs. Kit integration availability depends on the Elementor environment.
+Exact SVG By Icon subset inventories, Pro Plus-only Kit entitlements, full editor/frontend SVG rendering, and arbitrary customer domain permissions are **NOT YET universally verified**. They are remaining release gates, not claimed features.
+
+The plugin adds Hashe-specific tabs and does not remove Elementor's five original Pro tabs or other providers. It no longer adds global CSS overrides for native classes such as .fas/.far/.fal/.fad. Missing genuine paid glyph fonts cannot be fabricated or redistributed.
+
+The editor uses scoped in-memory caching and an asynchronous callback guard for icon-library loads. The server supplies a canonical tab list so a corrupted client picker list can be restored without erasing unrelated icon libraries.
+
+Catalog metadata is retrieved from official Font Awesome public REST endpoints, validated across all pages, cached by exact Font Awesome release version and retained as last-known-good on refresh failures. WP-Cron attempts hourly prewarming, while editor catalog requests provide the guaranteed on-demand fallback when cron is disabled or traffic is sparse. Built-in Free font assets only upgrade with a tested plugin release; they are not silently replaced by REST metadata.
 
 == Installation ==
 
-1. For this Amari beta use only the versioned testing ZIP from the feature-branch GitHub Actions artifact; do not install the public v1.0.3 ZIP for beta testing.
-2. Do NOT install GitHub's "Code > Download ZIP" repository source archive.
-3. In WordPress go to Plugins > Add New Plugin > Upload Plugin, select the release ZIP, then install and activate it.
-4. With Elementor active, open a widget's Icon Library control. For the two-style test Kit 23f6a60c28, expect Hashe tabs for Brands and Sharp Duotone Regular; existing Elementor-native tabs are preserved.
-5. Set your existing Kit ID in Elementor > Settings > Integrations. For this beta, use a by-style Web Fonts Kit first. If no Kit is set, Hashe's three Free tabs appear.
-6. Before installing, take and verify a backup of the working Amari v1.0.3 plugin folder or WordPress site. If any Elementor editor issue occurs, deactivate this beta and reinstall the verified v1.0.3 package.
+This integrated feature branch is currently NOT a public release or approved WordPress installer. Use the existing tagged v1.0.3 release for public installation until the 24-case PPP matrix is complete.
 
-Back up production sites before upgrades and verify on your actual Elementor setup. Pro icon names may appear even when a Kit does not serve their glyphs.
+For a later approved versioned plugin ZIP, install via WordPress Plugins > Add New Plugin > Upload Plugin. Configure Kit ID, if any, in the existing Elementor Settings > Integrations > Font Awesome Pro field. Do not upload GitHub's source-repository ZIP.
+
+The customer's Kit assets are hosted and licensed by Font Awesome. A Kit may restrict the web domains allowed to use it. The plugin sends this WordPress site's own URL as Referer while retrieving its Kit bootstrap; another domain cannot be used to bypass domain restrictions.
 
 == Frequently Asked Questions ==
 
-= Do Free icons need a Font Awesome account or Kit? =
-No. Without a Kit configured, the bundled Free fonts and CSS load locally.
+= Do I need a Kit for the Free catalogs? =
+No. Three bundled Free catalogs and CSS/fonts work without a Kit.
 
-= Does adding a Kit ID unlock Pro icons? =
-No. The plugin lists names only. Actual Pro rendering depends on a compatible, licensed Kit and its configuration.
+= Does a Kit ID by itself unlock paid icons? =
+No. The Kit's actual enabled families, icon selection, license and domain restrictions control what can render.
 
-= Can I install the repository source ZIP directly? =
-Use the versioned release attachment instead; the source archive is not the packaged WordPress plugin.
+= Are original Elementor libraries replaced? =
+No. They remain registered. Existing saved icon references are not rewritten.
 
-= What if icons are missing or blank? =
-Check that Elementor is active, check the browser console, and for Kit-enabled installations confirm Kit entitlement, available styles, font loading and domain restrictions. Report reproducible problems at https://github.com/HasheCS/hashe-fa7-elementor/issues and do not publish private credentials.
+= Why are original Elementor Light/Duotone Pro icons blank with a two-style Kit? =
+Those native Elementor tabs may be present even if the configured Kit supplies only Brands and Sharp Duotone Regular. Our plugin does not create missing paid Classic fonts; an authenticated before/after test with Hashe skipped is required to distinguish external behavior from a regression.
+
+= Which modes are release-blocked? =
+Unverified exact SVG By Icon inventory and Pro Plus-only style manifest, authenticated Elementor SVG picker and frontend saves, multi-style By Icon CSS precision, and the full cross-browser PPP acceptance. See the approved engineering blueprint and the acceptance register before promoting a release.
+
+== Licenses and attribution ==
+
+The plugin is GPL-2.0-or-later. Bundled Font Awesome Free assets follow Font Awesome's MIT, SIL OFL 1.1 and CC BY 4.0 terms as applicable. No paid Font Awesome CSS, fonts, SVG paths, private API credentials or paid assets are bundled. Font Awesome and Elementor are registered marks of their respective owners; Hashe Computer Solutions is not affiliated with or endorsed by either provider.
 
 == Changelog ==
 
-= 1.1.0-beta.2 (Amari test only) =
-* Fix missing icons beside Hashe Kit libraries by using Elementor's own eicon-font-awesome glyph instead of relying on an excluded Font Awesome Kit style.
-* Fix doubled Brands Brands category name; retain both selected Kit tabs and Elementor's original native tabs.
-* Native Pro tab glyphs still depend on the customer's selected Kit styles; this fix does not add unselected Pro font assets.
-* Public Font Awesome Kit Web Fonts style discovery; only explicitly enabled family-styles get added to the Elementor picker.
-* New family styles may be detected from the current Font Awesome REST release catalog without distributing Pro assets.
-* Per-category icon-name loading; cached Kit refresh; browser localStorage protection preserved.
-* SVG and by-icon Kit modes are not yet verified or supported in this beta.
+= 1.1.0-qa.20261027 integrated engineering development (not released) =
+* Consolidate original Elementor icon-picker callback, duplicate-tab and storage repairs.
+* Remove beta.3 global .fas/.far/.fal/.fad paid-font substitution rules.
+* Read-only two-style Web Fonts test Kit and full SVG Kit public metadata verification.
+* Dynamic per-version, per-style public REST catalogs with Free license filtering and last-known-good cache.
+* Use current site's Referer for authorized domain-restricted Kit discovery.
+* Restrict metadata requests to Font Awesome's HTTPS destinations and privileged catalog AJAX calls to logged-in editor sessions and WordPress nonces.
+* Add full Web Fonts and ordinary Pro/Free SVG Kit modes; fail closed for unsupported exact SVG subsets.
+* Add bounded background catalog prewarming and Elementor on-demand fallback.
 
-= 1.0.3 (previous recommended public release) =
-* Prevent Elementor browser-storage quota errors by holding Hashe icon catalogs in editor memory.
-* Remove only outdated Hashe icon-cache entries; preserve unrelated Elementor storage.
-* Keep per-category JSON fetching and correct concurrent callback association.
-* Automated PHP smoke tests and simulated JavaScript storage/callback regression tests passed; PR #1 records Chromium checks.
-* Amari site owner confirmed the editor works following installation (2026-10-26). Other installations are not exhaustively tested.
+= 1.0.3 (public recommended release) =
+* Prevent Elementor browser storage quota errors with editor-scoped in-memory catalogs.
+* Preserve unrelated Elementor library caches.
+* Confirmed working by the site owner on Amari on 26 October 2026; this was not universal Kit-mode acceptance.
 
-= 1.0.2 (development-only candidate; not separately released on GitHub) =
-* Restored per-category JSON loading and addressed callback races.
-* Required further logged-in Elementor UI verification.
-
-= 1.0.1 (withdrawn, do not install) =
-* Bulk inline icon catalogs caused an Elementor editor regression.
-* Public release installer removed; Git source history retained.
-
-= 1.0.0 (superseded historical baseline) =
-* Initial Font Awesome 7 Free catalogs and optional Pro names-only integration.
-* Not recommended for new installations; compatibility testing was limited.
+= 1.0.1 (withdrawn; do not install) =
+* Regressed Elementor editor functionality. Withdrawn installer retained only in source history.

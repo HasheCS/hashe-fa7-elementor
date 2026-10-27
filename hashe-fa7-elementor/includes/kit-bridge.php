@@ -9,11 +9,55 @@ defined( 'ABSPATH' ) || exit;
 
 /** Bounded public HTTPS request. Never follow arbitrary URLs from Kit content. */
 function hashe_fa7_public_get( $url, $max_bytes = 4000000 ) {
+    // The Kit bootstrap supplies data, never destinations. Reject any other
+    // host, protocol, credentials, fragment or unexpected URL shape before
+    // WordPress makes an outbound request. Do not follow redirects.
+    if ( ! is_string( $url ) || strlen( $url ) > 500 ||
+         ! is_int( $max_bytes ) || $max_bytes < 1024 || $max_bytes > 6000000 ) {
+        return false;
+    }
+    $parsed = parse_url( $url );
+    if ( ! is_array( $parsed ) || 'https' !== ( $parsed['scheme'] ?? '' ) ||
+         isset( $parsed['user'] ) || isset( $parsed['pass'] ) ||
+         isset( $parsed['port'] ) || isset( $parsed['fragment'] ) ) {
+        return false;
+    }
+    $host = (string) ( $parsed['host'] ?? '' );
+    $path = (string) ( $parsed['path'] ?? '' );
+    $query = (string) ( $parsed['query'] ?? '' );
+    $allowed = false;
+    if ( 'kit.fontawesome.com' === $host ) {
+        $allowed = (bool) preg_match( '#^/[a-f0-9]{10}\\.js$#D', $path ) && '' === $query;
+    } elseif ( 'ka-p.fontawesome.com' === $host || 'ka-f.fontawesome.com' === $host ) {
+        if ( preg_match( '#^/assets/([a-f0-9]{10})/[0-9]+/kit\.css$#D', $path, $matches ) ) {
+            $allowed = 'token=' . $matches[1] === $query;
+        } elseif ( preg_match(
+            '#^/releases/v7\.[0-9]+\.[0-9]+/css/(?:free|pro)\.min\.css$#D',
+            $path
+        ) ) {
+            $allowed = (bool) preg_match( '/^token=[a-f0-9]{10}$/D', $query );
+        }
+    } elseif ( 'api.fontawesome.com' === $host ) {
+        $allowed = (bool) preg_match(
+            '#^/releases(?:/7\\.[0-9]+\\.[0-9]+/(?:family-styles|icons-minimal))?$#D',
+            $path
+        ) && ( '' === $query ||
+            (bool) preg_match( '/^page=[1-9][0-9]*&page_size=500$/D', $query ) );
+    }
+    if ( ! $allowed ) {
+        return false;
+    }
+    $headers = array( 'Accept' => '*/*' );
+    if ( 'api.fontawesome.com' !== $host ) {
+        // Domain-restricted Kit asset endpoints need a legitimate site
+        // Referer. No site information is sent to the public catalog API.
+        $headers['Referer'] = home_url( '/' );
+    }
     $response = wp_remote_get( $url, array(
         'timeout' => 16,
         'redirection' => 0,
         'limit_response_size' => $max_bytes + 1,
-        'headers' => array( 'Accept' => '*/*' ),
+        'headers' => $headers,
     ) );
     if ( is_wp_error( $response ) || 200 !== (int) wp_remote_retrieve_response_code( $response ) ) {
         return false;
@@ -46,41 +90,161 @@ function hashe_fa7_kit_snapshot( $kit_id ) {
     $snapshot = array(
         'version' => $config['version'],
         'method' => $method,
+        'license' => (string) ( $config['license'] ?? 'free' ),
         'family_styles' => array(),
         'error' => '',
     );
+
+    // An SVG/JS Kit without subsetPath uses Font Awesome's own full
+    // release bundle (startupFilename). A curated By Icon Kit instead uses
+    // a Kit-specific subset resource and MUST NOT be mistaken for Full.
+    // Only standard Free or Pro family-styles can be established from the
+    // official public release metadata; Pro+ Kit Packages aren't hosted.
+    $startup = (string) ( $config['startupFilename'] ?? '' );
+    $license = (string) ( $config['license'] ?? '' );
+    if ( 'js' === $method ) {
+        $snapshot['subset_mode'] = 'unverified';
+        if ( ! empty( $config['subsetPath'] ) ||
+             ! in_array( $startup, array( 'free.min.js', 'pro.min.js' ), true ) ||
+             ! in_array( $license, array( 'free', 'pro' ), true ) ||
+             ( 'free' === $license && 'free.min.js' !== $startup ) ||
+             ( 'pro' === $license && 'pro.min.js' !== $startup ) ) {
+            $snapshot['error'] = 'Exact SVG Kit subset cannot be verified from public metadata.';
+            set_transient( $key, $snapshot, 300 );
+            return $snapshot;
+        }
+        $public_metadata = hashe_fa7_public_get(
+            'https://api.fontawesome.com/releases/' . $snapshot['version'] . '/family-styles',
+            700000
+        );
+        $details = false === $public_metadata ? null : json_decode( $public_metadata, true );
+        if ( ! is_array( $details ) || ! is_array( $details['familyStyles'] ?? null ) ) {
+            $snapshot['error'] = 'Could not verify SVG release family styles.';
+            set_transient( $key, $snapshot, 300 );
+            return $snapshot;
+        }
+        $standard = array( 'classic', 'duotone', 'sharp', 'sharp-duotone' );
+        foreach ( $details['familyStyles'] as $entry ) {
+            if ( ! is_array( $entry ) || ! is_string( $entry['prefix'] ?? null ) ||
+                 ! preg_match( '/^[a-z0-9]+$/D', $entry['prefix'] ) ) {
+                continue;
+            }
+            $family = (string) ( $entry['family'] ?? '' );
+            $style = (string) ( $entry['style'] ?? '' );
+            if ( ! in_array( $family, $standard, true ) ||
+                 ( 'free' === $license &&
+                   ( 'classic' !== $family ||
+                     ! in_array( $style, array( 'solid', 'regular', 'brands' ), true ) ) ) ) {
+                continue;
+            }
+            $snapshot['family_styles'][$entry['prefix']] = array(
+                'family' => 'classic' === $family && 'brands' === $style ? 'brands' : $family,
+                'style' => $style,
+                'shorthand' => (string) ( $entry['shorthand'] ?? '' ),
+            );
+        }
+        if ( ! $snapshot['family_styles'] ) {
+            $snapshot['error'] = 'No eligible families found for full SVG Kit.';
+            set_transient( $key, $snapshot, 300 );
+            return $snapshot;
+        }
+        $snapshot['license'] = $license;
+        $snapshot['subset_mode'] = 'full';
+        set_transient( $key, $snapshot, 900 );
+        return $snapshot;
+    }
 
     // A By Style Web Fonts Kit exposes its actual selection through the hosted
     // subset stylesheet's @font-face declarations. Generic CSS class names
     // DO NOT represent its selected styles.
     $base = (string) ( $config['baseUrl'] ?? '' );
     $path = (string) ( $config['subsetPath'] ?? '' );
-    if ( 'css' !== $method || ! in_array( $base, array( 'https://ka-p.fontawesome.com', 'https://ka-f.fontawesome.com' ), true ) ||
-         ! preg_match( '#^assets/' . preg_quote( $kit_id, '#' ) . '/[0-9]+/kit\.css$#D', $path ) ) {
-        $snapshot['error'] = 'Kit delivery mode is not yet supported by this beta.';
+    if ( 'css' !== $method ||
+         ! in_array( $base, array( 'https://ka-p.fontawesome.com', 'https://ka-f.fontawesome.com' ), true ) ) {
+        $snapshot['error'] = 'Unrecognized Kit delivery mode or asset host.';
         set_transient( $key, $snapshot, 300 );
         return $snapshot;
     }
-    $css = hashe_fa7_public_get( $base . '/' . $path . '?token=' . $kit_id );
+    if ( preg_match( '#^assets/' . preg_quote( $kit_id, '#' ) . '/[0-9]+/kit\.css$#D', $path ) ) {
+        $asset = $base . '/' . $path . '?token=' . $kit_id;
+        $snapshot['subset_mode'] = 'kit-css';
+    } elseif ( '' === $path &&
+               in_array( $startup, array( 'pro.min.css', 'free.min.css' ), true ) &&
+               ( ( 'pro' === $license && 'pro.min.css' === $startup ) ||
+                 ( 'free' === $license && 'free.min.css' === $startup ) ) ) {
+        $asset = $base . '/releases/v' . $snapshot['version'] .
+            '/css/' . $startup . '?token=' . $kit_id;
+        $snapshot['subset_mode'] = 'full';
+    } else {
+        $snapshot['error'] = 'Unsupported or unverified Web Fonts Kit asset path.';
+        set_transient( $key, $snapshot, 300 );
+        return $snapshot;
+    }
+    $css = hashe_fa7_public_get( $asset );
     if ( false === $css ) {
         $snapshot['error'] = 'Could not retrieve selected styles from the Kit CDN.';
         set_transient( $key, $snapshot, 300 );
         return $snapshot;
     }
 
+    // Intersect the public release's style catalog with actual icon selectors
+    // emitted by this customer's Web Fonts Kit. Includes comma-grouped aliases.
+    preg_match_all( '/((?:\.fa-[a-z0-9-]+\s*,?\s*)+)\{\s*--fa\s*:/', $css, $icon_rules );
+    $kit_icons = array();
+    foreach ( $icon_rules[1] as $selectors ) {
+        preg_match_all( '/\.fa-([a-z0-9-]+)/', $selectors, $names );
+        foreach ( $names[1] as $icon_name ) {
+            $kit_icons[$icon_name] = true;
+        }
+    }
+    if ( ! $kit_icons ) {
+        $snapshot['error'] = 'Kit stylesheet did not expose an icon-name inventory.';
+        set_transient( $key, $snapshot, 300 );
+        return $snapshot;
+    }
+    $snapshot['icon_names'] = $kit_icons;
+
     preg_match_all( '/@font-face\s*\{([^}]+)\}/i', $css, $blocks );
     $enabled = array();
+    $all_standard_font_faces = true;
+    $recognized_faces = 0;
     $weights = array( '100' => 'thin', '300' => 'light', '400' => 'regular', '600' => 'semibold', '900' => 'solid' );
     foreach ( $blocks[1] as $block ) {
         if ( ! preg_match( '/font-family\s*:\s*["\x27]?Font Awesome [0-9]+ ([a-zA-Z -]+)/i', $block, $fm ) ||
              ! preg_match( '/font-weight\s*:\s*([0-9]+)/i', $block, $wm ) ) {
             continue;
         }
+        $recognized_faces++;
+        // A By Style Kit serves ordinary, complete release font files for
+        // each selected family; verified on the actual two-style 7.3.1 Kit
+        // (40 of 40 @font-face src URLs are release webfonts).
+        //
+        // A custom By Icon Kit can emit a global fa-UNICODE mapping while
+        // supplying per-family subset font files. That global mapping is NOT
+        // proof that every listed name exists in every selected family. Do
+        // not conflate the two kinds of Web Fonts subsets.
+        $release_fonts = '#https://ka-[pf]\\.fontawesome\\.com/releases/v' .
+            preg_quote( $snapshot['version'], '#' ) .
+            '/webfonts/[a-zA-Z0-9_-]+\\.woff2#D';
+        if ( ! preg_match( $release_fonts, $block ) ) {
+            $all_standard_font_faces = false;
+        }
         $family = strtolower( trim( preg_replace( '/[[:space:]]+/', '-', $fm[1] ) ) );
+        // Full Classic styles use font-family "Font Awesome 7 Pro" or
+        // "Font Awesome 7 Free"; public release metadata names them classic.
+        if ( 'pro' === $family || 'free' === $family ) {
+            $family = 'classic';
+        }
         $style = 'brands' === $family ? 'brands' : ( $weights[$wm[1]] ?? '' );
         if ( '' !== $style ) {
             $enabled[$family . ':' . $style] = true;
         }
+    }
+    if ( 'kit-css' === $snapshot['subset_mode'] &&
+         $recognized_faces > 0 &&
+         $recognized_faces === count( $blocks[1] ) &&
+         $all_standard_font_faces ) {
+        $snapshot['subset_mode'] = 'full-family-fonts';
     }
     if ( ! $enabled ) {
         $snapshot['error'] = 'Kit stylesheet did not expose supported font families.';
@@ -151,7 +315,11 @@ function hashe_fa7_register_kit_tabs( $tabs, $kit_id ) {
             'displayPrefix' => hashe_fa7_display_prefix( $spec ),
             'labelIcon' => 'eicon-font-awesome',
             'ver' => $kit['version'],
-            'fetchJson' => admin_url( 'admin-ajax.php?action=hashe_fa7_catalog&style=' . rawurlencode( $prefix ) ),
+            'fetchJson' => admin_url(
+                'admin-ajax.php?action=hashe_fa7_catalog&style=' .
+                rawurlencode( $prefix ) . '&_wpnonce=' .
+                rawurlencode( wp_create_nonce( 'hashe_fa7_catalog' ) )
+            ),
             'native' => true,
         );
     }
@@ -159,61 +327,228 @@ function hashe_fa7_register_kit_tabs( $tabs, $kit_id ) {
 }
 
 /** Get names for a style using the matching public release metadata. */
-function hashe_fa7_names_for_style( $version, $prefix ) {
-    $key = 'hashe_fa7_names_' . md5( $version . ':' . $prefix );
-    $cached = get_transient( $key );
-    if ( is_array( $cached ) ) {
-        return $cached;
-    }
-    // 7.3.1 ships with verified, names-only catalogs; this avoids API delays
-    // on the initial test Kit. Future releases and Pro Plus use public API.
-    if ( HASHE_FA7_VERSION === $version ) {
-        $local = plugin_dir_path( __FILE__ ) . '../data/' . $prefix . '.json';
-        if ( is_readable( $local ) ) {
-            $data = json_decode( (string) file_get_contents( $local ), true );
-            if ( is_array( $data['icons'] ?? null ) ) {
-                return $data['icons'];
-            }
-        }
+/**
+ * Build a full, release-specific names-only catalog from official public
+ * Font Awesome metadata. Reuse it across all selected Kit styles.
+ *
+ * The old 7.3.1 bundled Pro JSON files listed the same general names for
+ * numerous different styles. They are not authoritative style membership.
+ * Do NOT use those JSON files in Kit mode.
+ *
+ * Publish the complete, validated catalog only after all pages succeed.
+ * Failure leaves the previous cached complete catalog unchanged.
+ */
+function hashe_fa7_release_style_catalog( $version ) {
+    if ( ! is_string( $version ) || ! preg_match( '/^7\\.[0-9]+\\.[0-9]+$/D', $version ) ) {
+        return false;
     }
 
-    $icons = array();
-    for ( $page = 1; $page <= 100; $page++ ) {
-        $url = 'https://api.fontawesome.com/releases/' . $version . '/icons-minimal?page=' . $page . '&page_size=500';
-        $raw = hashe_fa7_public_get( $url, 1500000 );
-        $batch = false === $raw ? null : json_decode( $raw, true );
-        if ( ! is_array( $batch ) || ! is_array( $batch['icons'] ?? null ) ||
-             ! is_numeric( $batch['totalPageCount'] ?? null ) ) {
-            return false;
+    $key = 'hashe_fa7_release_' . md5( $version );
+    $check_key = 'hashe_fa7_refresh_' . md5( $version );
+    $cached = get_transient( $key );
+    $last_good = is_array( $cached ) && ! empty( $cached ) ? $cached : false;
+    if ( false !== $last_good && get_transient( $check_key ) ) {
+        return $last_good;
+    }
+    // A failed refresh must preserve the full previous version-scoped catalog.
+    // Never mix rows from different versions or cache partial API pages.
+    $recover = static function () use ( $last_good, $check_key ) {
+        if ( false !== $last_good ) {
+            set_transient( $check_key, 'retry', 300 );
         }
-        foreach ( $batch['icons'] as $icon ) {
+        return $last_good;
+    };
+
+    // Single-flight the first catalog build: Elementor 4.x requests all
+    // categories concurrently. Without an atomic shared lock, a full SVG
+    // Kit can trigger >100 duplicate metadata page downloads.
+    $lock_key = 'hashe_fa7_build_' . md5( $version );
+    $lock_token = uniqid( 'fa7-', true );
+    $lock_owner = add_option(
+        $lock_key,
+        array( 'token' => $lock_token, 'expires' => time() + 45 ),
+        '',
+        'no'
+    );
+    if ( ! $lock_owner ) {
+        $held = get_option( $lock_key );
+        if ( is_array( $held ) && (int) ( $held['expires'] ?? 0 ) < time() ) {
+            delete_option( $lock_key );
+            $lock_owner = add_option(
+                $lock_key,
+                array( 'token' => $lock_token, 'expires' => time() + 45 ),
+                '',
+                'no'
+            );
+        }
+    }
+    if ( ! $lock_owner ) {
+        if ( false !== $last_good ) {
+            return $last_good;
+        }
+        // Bounded wait for the first request to publish its validated catalog.
+        for ( $attempt = 0; $attempt < 50; $attempt++ ) {
+            usleep( 200000 );
+            $ready = get_transient( $key );
+            if ( is_array( $ready ) && ! empty( $ready ) ) {
+                return $ready;
+            }
+        }
+        return false;
+    }
+
+    try {
+    $family_response = hashe_fa7_public_get( 'https://api.fontawesome.com/releases/' . $version . '/family-styles', 700000 );
+    $family_json = false === $family_response ? null : json_decode( $family_response, true );
+    if ( ! is_array( $family_json ) || ! is_array( $family_json['familyStyles'] ?? null ) || ! $family_json['familyStyles'] ) {
+        return $recover();
+    }
+
+    $families = array();
+    foreach ( $family_json['familyStyles'] as $item ) {
+        $prefix = is_array( $item ) ? ( $item['prefix'] ?? '' ) : '';
+        if ( ! is_string( $prefix ) || ! preg_match( '/^[a-z0-9]+$/D', $prefix ) || isset( $families[$prefix] ) ) {
+            return $recover();
+        }
+        $families[$prefix] = array();
+    }
+
+    $free_membership = array();
+    foreach ( $families as $id => $_ ) {
+        $free_membership[$id] = array();
+    }
+    $found = false;
+    $total_pages = null;
+    for ( $page = 1; $page <= 250; $page++ ) {
+        $path = 'https://api.fontawesome.com/releases/' . $version . '/icons-minimal?page=' . $page . '&page_size=500';
+        $response = hashe_fa7_public_get( $path, 1500000 );
+        $body = false === $response ? null : json_decode( $response, true );
+        if ( ! is_array( $body ) || ! is_array( $body['icons'] ?? null ) ||
+             ! is_numeric( $body['totalPageCount'] ?? null ) || ! $body['icons'] ) {
+            return $recover();
+        }
+        $reported_pages = (int) $body['totalPageCount'];
+        if ( $reported_pages < 1 || $reported_pages > 250 ||
+             ( null !== $total_pages && $total_pages !== $reported_pages ) ) {
+            return $recover();
+        }
+        $total_pages = $reported_pages;
+        foreach ( $body['icons'] as $icon ) {
             if ( ! is_array( $icon ) || ! is_string( $icon['id'] ?? null ) ||
-                 ! preg_match( '/^[a-z0-9-]+$/D', $icon['id'] ) ) {
-                continue;
+                 ! preg_match( '/^[a-z0-9-]+$/D', $icon['id'] ) ||
+                 ! is_array( $icon['familyStylesByLicense'] ?? null ) ) {
+                return $recover();
             }
             foreach ( array( 'free', 'pro' ) as $license ) {
-                foreach ( (array) ( $icon['familyStylesByLicense'][$license] ?? array() ) as $variant ) {
-                    if ( is_array( $variant ) && $prefix === ( $variant['prefix'] ?? '' ) ) {
-                        $icons[$icon['id']] = true;
+                if ( ! is_array( $icon['familyStylesByLicense'][$license] ?? null ) ) {
+                    return $recover();
+                }
+                foreach ( $icon['familyStylesByLicense'][$license] as $variant ) {
+                    $prefix = is_array( $variant ) ? ( $variant['prefix'] ?? '' ) : '';
+                    if ( ! is_string( $prefix ) || ! array_key_exists( $prefix, $families ) ) {
+                        return $recover();
+                    }
+                    $families[$prefix][$icon['id']] = true;
+                    if ( 'free' === $license ) {
+                        $free_membership[$prefix][$icon['id']] = true;
                     }
                 }
             }
+            $found = true;
         }
-        if ( $page >= (int) $batch['totalPageCount'] ) {
+        if ( $page >= $total_pages ) {
             break;
         }
     }
-    if ( empty( $icons ) || $page > 100 ) {
+    if ( ! $found || $page > 250 ) {
+        return $recover();
+    }
+
+    $catalog = array();
+    foreach ( $families as $prefix => $names ) {
+        if ( ! $names ) {
+            continue;
+        }
+        $values = array_keys( $names );
+        sort( $values, SORT_STRING );
+        $catalog[$prefix] = $values;
+    }
+    if ( ! $catalog ) {
+        return $recover();
+    }
+    $free = array();
+    foreach ( $free_membership as $prefix => $ids ) {
+        $free[$prefix] = array_keys( $ids );
+        sort( $free[$prefix], SORT_STRING );
+    }
+    $catalog['__free'] = $free;
+    set_transient( $key, $catalog, 30 * DAY_IN_SECONDS );
+    set_transient( $check_key, 'fresh', DAY_IN_SECONDS );
+    return $catalog;
+    } finally {
+        // Do not release a lock acquired by another process after expiration.
+        $current = get_option( $lock_key );
+        if ( is_array( $current ) &&
+             ( $current['token'] ?? '' ) === $lock_token ) {
+            delete_option( $lock_key );
+        }
+    }
+}
+
+/** Match Kit-approved style with exact public release membership. */
+function hashe_fa7_names_for_style( $version, $prefix, $license = 'pro' ) {
+    if ( ! is_string( $prefix ) || ! preg_match( '/^[a-z0-9]+$/D', $prefix ) ) {
         return false;
     }
-    $names = array_keys( $icons );
-    sort( $names, SORT_STRING );
-    set_transient( $key, $names, DAY_IN_SECONDS );
-    return $names;
+    $catalog = hashe_fa7_release_style_catalog( $version );
+    if ( ! is_array( $catalog ) ) {
+        return false;
+    }
+    if ( 'free' === $license ) {
+        return isset( $catalog['__free'][$prefix] ) ? $catalog['__free'][$prefix] : false;
+    }
+    return isset( $catalog[$prefix] ) ? $catalog[$prefix] : false;
+}
+
+/**
+ * Restrict candidate names to this Kit's hosted Web Fonts icon inventory.
+ * Future SVG/JS inventory discovery must use its separately verified source.
+ */
+function hashe_fa7_filter_names_to_kit( $names, $kit ) {
+    if ( ! is_array( $names ) || ! is_array( $kit ) ||
+         ! is_array( $kit['icon_names'] ?? null ) ) {
+        return false;
+    }
+    $filtered = array();
+    foreach ( $names as $name ) {
+        if ( isset( $kit['icon_names'][$name] ) ) {
+            $filtered[] = $name;
+        }
+    }
+    return $filtered;
+}
+
+/**
+ * Elementor 4.x expects JSON with an "icons" array even when remote metadata
+ * is temporarily unavailable. Its native fetchIcons() unconditionally reads
+ * json.icons and attempts to normalize it; WP's default wp_send_json_error
+ * payload can cause a JavaScript exception and damage the entire picker.
+ *
+ * Return a typed empty catalog and a diagnostic without falsely claiming
+ * icons or using malformed HTTP responses. A future editor refresh retries.
+ */
+function hashe_fa7_ajax_empty( $reason ) {
+    wp_send_json( array(
+        'icons' => array(),
+        'diagnostic' => $reason,
+    ), 200 );
 }
 
 /** Called by Elementor's per-category fetchJson request. */
 function hashe_fa7_ajax_catalog() {
+    // GET request is read-only but can trigger expensive public metadata reads:
+    // only the current authenticated editor session may request a catalog.
+    check_ajax_referer( 'hashe_fa7_catalog', '_wpnonce' );
     if ( ! current_user_can( 'edit_posts' ) ) {
         wp_send_json_error( 'Permission denied', 403 );
     }
@@ -221,11 +556,40 @@ function hashe_fa7_ajax_catalog() {
     $style = isset( $_GET['style'] ) ? sanitize_key( wp_unslash( $_GET['style'] ) ) : '';
     $kit = hashe_fa7_kit_snapshot( $kit_id );
     if ( ! is_array( $kit ) || ! isset( $kit['family_styles'][$style] ) ) {
-        wp_send_json_error( 'Style not included in this Kit', 404 );
+        hashe_fa7_ajax_empty( 'Style not included in the configured Kit' );
     }
-    $names = hashe_fa7_names_for_style( $kit['version'], $style );
+    $names = hashe_fa7_names_for_style(
+        $kit['version'],
+        $style,
+        ( 'free' === ( $kit['license'] ?? '' ) ) ? 'free' : 'pro'
+    );
     if ( false === $names ) {
-        wp_send_json_error( 'Icon catalog temporarily unavailable', 503 );
+        hashe_fa7_ajax_empty( 'Metadata temporarily unavailable; reload the editor to retry' );
+    }
+    $subset_mode = (string) ( $kit['subset_mode'] ?? '' );
+    if ( ( 'js' === ( $kit['method'] ?? '' ) && 'full' === $subset_mode ) ||
+         'full-family-fonts' === $subset_mode ) {
+        // Public release membership is precise: the licensed Kit is serving
+        // actual full release font files for every selected family-style.
+        // Unlike global CSS class names, the font asset URLs establish that
+        // the requested style's complete font is available.
+    } else {
+        if ( 'kit-css' === $subset_mode &&
+             count( $kit['family_styles'] ) > 1 ) {
+            hashe_fa7_ajax_empty(
+                'Exact per-style membership of multi-style custom By Icon Kit is unavailable'
+            );
+        }
+        $selected = hashe_fa7_filter_names_to_kit( $names, $kit );
+        if ( false === $selected ) {
+            hashe_fa7_ajax_empty( 'Kit inventory unavailable' );
+        }
+        // A By-Icon Web Fonts Kit emits a *global* icon-to-Unicode CSS map,
+        // not a per-style membership map. When the Kit provides several font
+        // families but only a partial icon inventory for one of them, naive
+        // intersection could invent e.g. a Regular house selected only as
+        // Solid. Fail closed rather than misrepresent that customer's choices.
+        $names = $selected;
     }
     wp_send_json( array( 'icons' => $names ) );
 }

@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Elementor Native + FA7 tab identity QA</title></head>
+<body><main id="result">pending</main>
+<script>
+'use strict';
+const originals=[
+ ['fa-regular','Font Awesome - Regular Pro'],
+ ['fa-solid','Font Awesome - Solid Pro'],
+ ['fa-brands','Font Awesome - Brands Pro'],
+ ['fa-light','Font Awesome - Light Pro'],
+ ['fa-duotone','Font Awesome - Duotone Pro'],
+ ['hashe-fa7-fab','Font Awesome 7.3.1 Kit - Brands'],
+ ['hashe-fa7-fasdr','Font Awesome 7.3.1 Kit - Sharp Duotone Regular']
+].map(([name,label],i)=>({name,label,delay:[80,10,55,45,30,20,5][i]}));
+window.hasheFa7ExpectedTabs=originals;
+const values=new Map([['elementor',JSON.stringify({'elementor_fa-solid_icons':{icons:[]}})]]);
+const store={
+ getKey(x){return 'elementor_'+(x.name||x)+'_icons'},
+ get(k){return JSON.parse(values.get('elementor'))[k]},
+ save(x){const all=JSON.parse(values.get('elementor'));all[this.getKey(x)]=x;values.set('elementor',JSON.stringify(all));}
+};
+const library={
+ initIconType(tab,cb){
+  this.notifyCallback=cb;
+  setTimeout(()=>this.runCallback(Object.assign(tab,{icons:[tab.name+'-glyph']})),tab.delay||0);
+ },
+ runCallback(tab){return this.notifyCallback?.(tab)}
+};
+const icons={
+ libraries:originals.slice(0,5).concat(
+  Array.from({length:12},(_,i)=>({name:'hashe-fa7-legacy-'+i,
+    label:'Font Awesome 7.3.1 Kit - Brands',delay:i+1}))
+ )
+};
+const manager={
+ store,library,
+ onPickerShow(){
+  const tabs=icons.libraries;
+  tabs.forEach((tab,i)=>library.initIconType(tab,result=>tabs[i]=result));
+ },
+ show(){return this.onPickerShow()}
+};
+window.elementor={config:{icons},iconManager:manager};
+</script>
+<script src="../hashe-fa7-elementor/assets/js/editor-callback-guard.js"></script>
+<script>
+window.addEventListener('load',()=>{
+  manager.onPickerShow();
+  setTimeout(()=>{
+    // Simulate an old modal instance with a dynamic third-party tab whose
+    // callback finishes AFTER a new picker session begins. The actual
+    // Elementor 4.x callback writes icons[oldIndex] into the same live array.
+    icons.libraries.push({
+      name:'external-temp',label:'Third-party temporary tab',delay:165
+    });
+    manager.onPickerShow();
+    setTimeout(()=>{
+      icons.libraries.splice(0,icons.libraries.length,
+        ...Array.from({length:14},()=>({
+          name:'hashe-fa7-fab',label:'Font Awesome 7.3.1 Kit - Brands'
+        })));
+      manager.show();
+    },10);
+  },110);
+  setTimeout(()=>{
+    const result=icons.libraries;
+    const ok=result.length===7&&
+      result.every((x,i)=>x.name===originals[i].name&&x.label===originals[i].label)&&
+      new Set(result.map(x=>x.name)).size===7;
+    document.querySelector('#result').textContent=ok
+      ?'PASS: 5 original Elementor Pro tabs + 2 uniquely named Kit tabs, no repeated Brands after async loading'
+      :'FAIL: '+JSON.stringify(result.map(x=>({name:x.name,label:x.label})));
+    document.body.setAttribute('data-fa7-qa',ok?'pass':'fail');
+  },420);
+});
+</script>
+</body></html>

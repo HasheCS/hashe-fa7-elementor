@@ -1,0 +1,132 @@
+name: FA7 PPP engineering regression checks (not a release)
+
+on:
+  push:
+    branches:
+      - feature/fa7-ppp-integrated-20261027
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  php-and-editor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['7.4', '8.2', '8.3']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+      - name: Syntax checks
+        run: |
+          php -l hashe-fa7-elementor/hashe-fa7-elementor.php
+          php -l hashe-fa7-elementor/includes/kit-bridge.php
+          php -l tests/smoke.php
+      - name: Selected style and five-native-library regression tests
+        run: php tests/smoke.php
+      - name: Elementor localStorage callback regression tests
+        run: node --test tests/editor-callback-guard.test.cjs
+      - name: Kit fetch errors cannot take down native Elementor picker
+        run: node --test tests/editor-network-failure.test.cjs
+
+  live-kit-metadata:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+      - name: Verify public by-style Kit and real per-style release icon membership
+        run: |
+          php -l tests/live-kit-integration.php
+          php tests/live-kit-integration.php
+      - name: Verify original public SVG JS all-style Kit metadata
+        run: |
+          php -l tests/live-svg-kit-integration.php
+          php tests/live-svg-kit-integration.php
+
+  browser-picker-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Actual Chromium DOM regression for seven distinct icon tabs
+        run: |
+          BROWSER="$(command -v google-chrome || command -v chromium-browser)"
+          test -n "$BROWSER"
+          PROFILE="$(mktemp -d)"
+          trap 'rm -rf "$PROFILE"' EXIT
+          "$BROWSER" --headless=new --no-sandbox --disable-dev-shm-usage \
+            --virtual-time-budget=2500 --user-data-dir="$PROFILE" \
+            --dump-dom "file://$PWD/tests/browser-picker-integrity.html" 2>/dev/null \
+            | grep -F '<body data-fa7-qa="pass">'
+
+  browser-free-fonts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Render all three packaged Free families in real Chromium
+        run: |
+          BROWSER="$(command -v google-chrome || command -v chromium-browser)"
+          test -n "$BROWSER"
+          PROFILE="$(mktemp -d)"
+          trap 'rm -rf "$PROFILE"' EXIT
+          "$BROWSER" --headless=new --no-sandbox --disable-dev-shm-usage \
+            --allow-file-access-from-files --virtual-time-budget=5000 \
+            --user-data-dir="$PROFILE" \
+            --dump-dom "file://$PWD/tests/browser-free-fonts.html" 2>/dev/null \
+            | grep -F '<body data-fa7-free-qa="pass">'
+
+  live-css-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify current two-style Kit CSS WOFF2 icon glyphs in real browser
+        run: node --experimental-websocket tests/live-css-browser.cjs
+
+  live-svg-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Verify actual licensed SVG Kit renders inline icons on authorized public site
+        run: |
+          node --experimental-websocket tests/live-svg-browser.cjs
+
+  release-governance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Offline catalog and acceptance gate tests
+        run: python -m unittest discover -s tests -p 'test_*.py' -v
+      - name: Confirm release is blocked while acceptance matrix is incomplete
+        run: |
+          python tools/release_gate.py qa/acceptance-evidence.json && {
+            echo "STOP: All acceptance rows unexpectedly approved. Review real-browser evidence before distributing."
+            exit 1
+          } || status=$?
+          if [ "$status" -ne 1 ]; then
+            echo "STOP: Release gate returned an unexpected error: $status"
+            exit 1
+          fi
+          echo "PASS: The incomplete beta is not authorized for final ZIP distribution."

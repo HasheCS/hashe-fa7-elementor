@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "blueprint": "HASHE_FA7_ELEMENTOR_COMPLETE_ENGINEERING_BLUEPRINT_2026-10-27.md",
+  "source_commit": "cb8cad42da7bc5457a5524e9554ff1f004d092fa",
+  "last_reviewed": "2026-10-27",
+  "release_status": "BLOCKED_AUTHENTICATED_ELEMENTOR_AND_KIT_SUBSET_LIMITATIONS",
+  "checks": [
+    {
+      "id": "T01",
+      "status": "pending",
+      "evidence": "Chrome file-backed fixture validates 3 bundled Free font faces and real before pseudo glyph content, but authenticated Elementor editor/search/select/save/frontend remain untested.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T02",
+      "status": "pending",
+      "evidence": "Previous beta.3 real screenshot FAILED duplicate Brands. Consolidated candidate now uses canonical server tab restore and Chromium DOM passes 5+2; actual logged-in picker must be revalidated before pass.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T03",
+      "status": "pending",
+      "evidence": "Public Amari Chrome with existing 23f6a60c28 Kit rendered genuine Brands GitHub and Sharp Duotone Regular house using Kit WOFF2 assets (HTTP200); editor tile/search/save/frontend widget behavior still pending.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T04",
+      "status": "pending",
+      "evidence": "2026-10-27: Real Elementor editor JS has one mutable notifyCallback for concurrent native/Hashe icon loads. Regression fix uses per-library callback routing for all tab names and Hashe-only storage. Node tests for all five native Pro tabs passing. Deployed rollback-protected JS + asset-cache-version patch to Amari. Post-deploy WP-CLI shows 5 native + 2 Hashe, Kit unchanged; direct JS HTTP 200 confirmed. Logged-in browser visual tile and saved-widget signoff not yet observed.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-native-pro-ppp-root-cause-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T05",
+      "status": "pending",
+      "evidence": "Prior beta.3 Brands labels duplicated in real screenshot. New code + mock Chrome DOM verified two distinct Hashe labels, but no signed-in real Elementor popup evidence yet.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T06",
+      "status": "pending",
+      "evidence": "Mock two-to-three Kit style transition after 15-minute snapshot invalidation passed, real Font Awesome Kit change/refresh end-to-end not performed.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T07",
+      "status": "pending",
+      "evidence": "Mock removal of selected Kit family removed only Hashe category, preserved native entry; actual Kit edit+reload not performed.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T08",
+      "status": "pending",
+      "evidence": "One-style By Icon CSS intersection passed; multi-style By Icon CSS global name map does not disclose per-style membership, intentionally returns 422 rather than listing false icons. Actual multi-style Kit case unresolved.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T09",
+      "status": "pending",
+      "evidence": "Actual public SVG Kit 7ba505d0c6 browser successfully rendered solid house and Brands GitHub as inline SVG using official Kit JS and SVG asset HTTP200. Elementor picker/search/saving/iframe/frontend widget still untested.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T10",
+      "status": "pass",
+      "evidence": "Kit JS config method=css with JS embed; GitHub live Kit CI confirms Web Fonts on selected-styles Kit.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/actions/runs/40387270349",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T11",
+      "status": "pending",
+      "evidence": "Unit tests verify Free CSS and SVG full Kit license filtering to Free variants; authentic Free Kit end-to-end untested.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T12",
+      "status": "pending",
+      "evidence": "Mock Kit-selected Notdog Solid and Whiteboard Semibold tabs passed; no licensed live Pro Plus Kit available for authorization/rendering test.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T13",
+      "status": "pending",
+      "evidence": "Release-specific dynamic public REST catalogs and new family fixture passed; live Kit's pinned version change to future release not tested.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T14",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T15",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T16",
+      "status": "pending",
+      "evidence": "Name-keyed callback guard and real Chromium tab DOM with 5 native+2 Hashe, memory-localStorage regression passed; real authenticated Elementor picker remains unverified.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T17",
+      "status": "pending",
+      "evidence": "",
+      "url": "",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T18",
+      "status": "pending",
+      "evidence": "PHP lint, smoke tests across PHP7.4/8.2/8.3 in CI, WordPress 6.x live Amari canary with staged code passed; broader Elementor version matrix untested.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T19",
+      "status": "pending",
+      "evidence": "Real headless Chromium Free/CSS Kit/SVG Kit and tab DOM fixtures pass; no authenticated Elementor picker, iframe or second browser acceptance.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T20",
+      "status": "pending",
+      "evidence": "Static SSRF HTTPS allowlist, WordPress edit_posts + nonce, no paid font artifacts in deterministic QA ZIP; integrated license and vulnerability review pending.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T21",
+      "status": "pending",
+      "evidence": "Beta.3 added forbidden global .fas/.far/.fal/.fad overrides; code removed in beta.4 and consolidated source. Third-party plugin and native frontend coexistence still requires real browser matrix.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T22",
+      "status": "pending",
+      "evidence": "Actual Chromium duplicate Brands reproduction fixture restores correct five native + two Kit category labels; real logged-in Elementor picker not yet signed off.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T23",
+      "status": "pending",
+      "evidence": "Unit-tested multi-page metadata failure preserves last-known-good release catalog and retries after interval; full external outage/recovery on actual site untested.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    },
+    {
+      "id": "T24",
+      "status": "pending",
+      "evidence": "Installable deterministic QA ZIP tool generated 33-file artifact, versions matched and ZIP integrity passed; no final integrated Amari install/rollback, public ZIP withheld by release gate.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/consolidated-ppp-integration-evidence-20261027.md",
+      "approved_external_limitation": false,
+      "signoff": ""
+    }
+  ],
+  "review_scope": "Beta.3 screenshot remains a historical failure; consolidated engineering candidate includes beta4 repair plus Web Fonts/SVG/catalog fixes, but no authenticated Elementor browser acceptance. No final ZIP approved."
+}

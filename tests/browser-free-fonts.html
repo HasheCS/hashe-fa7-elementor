@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Font Awesome 7 Free packaged font/browser QA</title>
+<link rel="stylesheet" href="../hashe-fa7-elementor/assets/css/fontawesome.min.css">
+<link rel="stylesheet" href="../hashe-fa7-elementor/assets/css/solid.min.css">
+<link rel="stylesheet" href="../hashe-fa7-elementor/assets/css/regular.min.css">
+<link rel="stylesheet" href="../hashe-fa7-elementor/assets/css/brands.min.css">
+<style>body{font-size:32px}i{display:inline-block;width:48px;height:48px}</style>
+</head><body data-fa7-free-qa="pending">
+<i id="solid" class="fa-solid fa-house" aria-label="Solid House"></i>
+<i id="regular" class="fa-regular fa-star" aria-label="Regular Star"></i>
+<i id="brands" class="fa-brands fa-github" aria-label="GitHub"></i>
+<main id="result">pending</main>
+<script>
+(async function () {
+    const cases=[
+        {id:'solid', family:'Font Awesome 7 Free',weight:'900'},
+        {id:'regular',family:'Font Awesome 7 Free',weight:'400'},
+        {id:'brands',family:'Font Awesome 7 Brands',weight:'400'}
+    ];
+    try {
+        await Promise.all(cases.map(x=>
+            document.fonts.load(x.weight+' 32px "'+x.family+'"')
+        ));
+        const checked=cases.map(c=>{
+            const e=document.getElementById(c.id);
+            const styles=getComputedStyle(e,'::before');
+            return {
+                id:c.id,
+                content:styles.content,
+                family:styles.fontFamily,
+                weight:styles.fontWeight,
+                loaded:document.fonts.check(c.weight+' 32px "'+c.family+'"')
+            };
+        });
+        const pass=checked.every(x=>
+            x.loaded && x.content !== 'none' && x.content !== 'normal' &&
+            x.content !== '""' && x.content !== "''" &&
+            !x.content.includes('\\0000')
+        );
+        document.body.dataset.fa7FreeQa=pass?'pass':'fail';
+        document.getElementById('result').textContent=
+            (pass?'PASS':'FAIL')+': '+JSON.stringify(checked);
+    } catch(error) {
+        document.body.dataset.fa7FreeQa='fail';
+        document.getElementById('result').textContent='FAIL: '+String(error);
+    }
+})();
+</script></body></html>
