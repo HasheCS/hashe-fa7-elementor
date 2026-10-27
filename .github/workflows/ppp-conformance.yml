@@ -46,6 +46,10 @@ jobs:
         run: |
           php -l tests/live-kit-integration.php
           php tests/live-kit-integration.php
+      - name: Verify original public SVG JS all-style Kit metadata
+        run: |
+          php -l tests/live-svg-kit-integration.php
+          php tests/live-svg-kit-integration.php
 
   browser-picker-regression:
     runs-on: ubuntu-latest
