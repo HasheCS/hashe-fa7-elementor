@@ -505,6 +505,22 @@ function hashe_fa7_filter_names_to_kit( $names, $kit ) {
     return $filtered;
 }
 
+/**
+ * Elementor 4.x expects JSON with an "icons" array even when remote metadata
+ * is temporarily unavailable. Its native fetchIcons() unconditionally reads
+ * json.icons and attempts to normalize it; WP's default wp_send_json_error
+ * payload can cause a JavaScript exception and damage the entire picker.
+ *
+ * Return a typed empty catalog and a diagnostic without falsely claiming
+ * icons or using malformed HTTP responses. A future editor refresh retries.
+ */
+function hashe_fa7_ajax_empty( $reason ) {
+    wp_send_json( array(
+        'icons' => array(),
+        'diagnostic' => $reason,
+    ), 200 );
+}
+
 /** Called by Elementor's per-category fetchJson request. */
 function hashe_fa7_ajax_catalog() {
     // GET request is read-only but can trigger expensive public metadata reads:
@@ -517,7 +533,7 @@ function hashe_fa7_ajax_catalog() {
     $style = isset( $_GET['style'] ) ? sanitize_key( wp_unslash( $_GET['style'] ) ) : '';
     $kit = hashe_fa7_kit_snapshot( $kit_id );
     if ( ! is_array( $kit ) || ! isset( $kit['family_styles'][$style] ) ) {
-        wp_send_json_error( 'Style not included in this Kit', 404 );
+        hashe_fa7_ajax_empty( 'Style not included in the configured Kit' );
     }
     $names = hashe_fa7_names_for_style(
         $kit['version'],
@@ -525,7 +541,7 @@ function hashe_fa7_ajax_catalog() {
         ( 'free' === ( $kit['license'] ?? '' ) ) ? 'free' : 'pro'
     );
     if ( false === $names ) {
-        wp_send_json_error( 'Icon catalog temporarily unavailable', 503 );
+        hashe_fa7_ajax_empty( 'Metadata temporarily unavailable; reload the editor to retry' );
     }
     if ( 'js' === ( $kit['method'] ?? '' ) &&
          'full' === ( $kit['subset_mode'] ?? '' ) ) {
@@ -534,7 +550,7 @@ function hashe_fa7_ajax_catalog() {
     } else {
         $selected = hashe_fa7_filter_names_to_kit( $names, $kit );
         if ( false === $selected ) {
-            wp_send_json_error( 'Kit icon inventory unavailable', 503 );
+            hashe_fa7_ajax_empty( 'Kit inventory unavailable' );
         }
         // A By-Icon Web Fonts Kit emits a *global* icon-to-Unicode CSS map,
         // not a per-style membership map. When the Kit provides several font
@@ -544,9 +560,8 @@ function hashe_fa7_ajax_catalog() {
         if ( 'kit-css' === ( $kit['subset_mode'] ?? '' ) &&
              count( $kit['family_styles'] ) > 1 &&
              count( $selected ) < count( $names ) ) {
-            wp_send_json_error(
-                'Exact multi-style By Icon membership is not published by this Kit CSS',
-                422
+            hashe_fa7_ajax_empty(
+                'Exact multi-style By Icon membership is not available from the Kit CSS'
             );
         }
         $names = $selected;
