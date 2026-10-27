@@ -16,6 +16,11 @@ function get_transient( $key ) { return $GLOBALS['hashe_transients'][$key] ?? fa
 function set_transient( $key, $value, $ttl ) { $GLOBALS['hashe_transients'][$key] = $value; return true; }
 function wp_create_nonce( $action ) { return 'unit-only-nonce'; }
 function check_ajax_referer( $action, $query_arg = false ) { return true; }
+function current_user_can( $capability ) { return 'edit_posts' === $capability; }
+function sanitize_key( $key ) { return preg_replace( '/[^a-z0-9_\\-]/', '', strtolower( $key ) ); }
+function wp_unslash( $str ) { return stripslashes( $str ); }
+function wp_send_json( $data ) { throw new RuntimeException( 'JSON_OK:' . json_encode( $data ) ); }
+function wp_send_json_error( $message, $status = 200 ) { throw new RuntimeException( 'JSON_ERROR:' . $status . ':' . $message ); }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
 function wp_remote_retrieve_response_code( $response ) { return $response['code']; }
 function wp_remote_retrieve_body( $response ) { return $response['body']; }
@@ -227,3 +232,35 @@ check( isset( $css_free['family_styles']['fab'] ) &&
        'Free Web Fonts do not invent paid font styles' );
 echo "PASS: Full Kit Web Fonts modes recognize Classic Pro/Free and selected styles without overriding Elementor.\n";
 
+
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['test_kit_id'] = '23f6a60c28';
+$GLOBALS['mock_kit_license'] = 'pro';
+$GLOBALS['mock_kit_method'] = 'css';
+$GLOBALS['mock_kit_subset'] = true;
+$GLOBALS['mock_kit_css'] = '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}' .
+    '@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400}' .
+    '.fa-github{--fa:"X"}.fa-leaf{--fa:"Y"}';
+$_GET['style'] = 'fasdr';
+try {
+    hashe_fa7_ajax_catalog();
+    check( false, 'Multi-style selected-By-Icon ambiguity must be rejected' );
+} catch ( RuntimeException $error ) {
+    check( 0 === strpos( $error->getMessage(), 'JSON_ERROR:422:' ),
+        'Multi-style By Icon subset must not guess icon family membership' );
+}
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_kit_css'] =
+    '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}' .
+    '.fa-github{--fa:"X"}';
+$_GET['style'] = 'fab';
+try {
+    hashe_fa7_ajax_catalog();
+    check( false, 'One-style By Icon returned no result' );
+} catch ( RuntimeException $error ) {
+    check( false !== strpos( $error->getMessage(), '"github"' ),
+        'One-style partial Kit catalog retains its exact selected icon' );
+    check( false === strpos( $error->getMessage(), '"apple"' ),
+        'One-style By Icon cannot list an unselected icon' );
+}
+echo "PASS: CSS By Icon mode supports exact one-style selection and rejects ambiguous multi-style selections.\\n";
