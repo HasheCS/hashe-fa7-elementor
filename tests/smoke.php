@@ -55,6 +55,8 @@ function wp_remote_get( $url, $options ) {
 function add_filter( $name, $callback, $priority = 10 ) { $GLOBALS['registered_filter'] = array( $name, $callback, $priority ); }
 function add_action( $name, $callback, $priority = 10 ) { $GLOBALS['registered_action'] = array( $name, $callback, $priority ); }
 function plugins_url( $path, $file ) { return plugin_dir_url( $file ) . $path; }
+function wp_enqueue_style( $handle, $src, $deps, $ver ) { $GLOBALS['style_enqueued'] = compact( 'handle', 'src', 'deps', 'ver' ); }
+function wp_add_inline_style( $handle, $css ) { $GLOBALS['style_inline'] = compact( 'handle', 'css' ); }
 function wp_enqueue_script( $handle, $src, $deps, $ver, $footer ) { $GLOBALS['editor_script'] = compact( 'handle', 'src', 'deps', 'ver', 'footer' ); }
 function plugin_dir_path( $file ) { return dirname( $file ) . DIRECTORY_SEPARATOR; }
 function plugin_dir_url( $file ) { return 'https://example.test/wp-content/plugins/' . basename( dirname( $file ) ) . '/'; }
@@ -119,6 +121,29 @@ $GLOBALS['mock_catalog_fail_page'] = 0;
 check( array( 'leaf', 'rocket' ) === hashe_fa7_names_for_style( '7.3.1', 'fasdr' ), 'Successful retry populates complete style catalog' );
 
 check( 'fa-sharp-duotone fa-regular' === $pro['hashe-fa7-fasdr']['displayPrefix'], 'Sharp Duotone style classes reflect Kit' );
+$kit_for_compat = hashe_fa7_kit_snapshot( '23f6a60c28' );
+$compat = hashe_fa7_native_compat_rules( $kit_for_compat );
+check( count( $compat ) === 4, 'Restricted two-style Kit requires four conditional native compatibility rules' );
+check( false !== strpos( $compat['solid'], 'Hashe Elementor Native Solid' ), 'Classic Solid prefers licensed Free font' );
+check( false !== strpos( $compat['regular'], 'Hashe Elementor Native Regular' ), 'Classic Regular prefers licensed Free font' );
+check( false !== strpos( $compat['light-fallback'], 'Sharp Duotone' ), 'Unselected Light uses explicitly documented Kit style fallback' );
+check( false !== strpos( $compat['duotone-fallback'], 'Sharp Duotone' ), 'Unselected Duotone uses explicitly documented Kit style fallback' );
+hashe_fa7_enqueue_native_compat();
+check( 'hashe-fa7-native-compat' === ( $GLOBALS['style_enqueued']['handle'] ?? '' ), 'Editor and frontend native compatibility stylesheet enqueued' );
+check( false !== strpos( $GLOBALS['style_inline']['css'], 'Hashe Elementor Native Regular' ), 'Only required legacy selectors are emitted' );
+$kit_with_classic = $kit_for_compat;
+$kit_with_classic['family_styles']['fas'] = array( 'style' => 'solid' );
+$kit_with_classic['family_styles']['far'] = array( 'style' => 'regular' );
+$kit_with_classic['family_styles']['fal'] = array( 'style' => 'light' );
+$kit_with_classic['family_styles']['fad'] = array( 'style' => 'solid' );
+check( array() === hashe_fa7_native_compat_rules( $kit_with_classic ), 'Full five-style Kit never gets fallback overrides' );
+$kit_without_sharp = $kit_for_compat;
+unset( $kit_without_sharp['family_styles']['fasdr'] );
+$no_sharp = hashe_fa7_native_compat_rules( $kit_without_sharp );
+check( count( $no_sharp ) === 2 && ! isset( $no_sharp['light-fallback'] ), 'Without licensed Sharp Duotone, only legal Free-family fallback is applied' );
+check( array() === hashe_fa7_native_compat_rules( array( 'method' => 'js' ) ), 'SVG Kits never receive Web Fonts compatibility CSS' );
+check( array() === hashe_fa7_native_compat_rules( array( 'method' => 'css', 'error' => 'invalid' ) ), 'Failed Kit does not receive fallback CSS' );
+
 $five_native = array(
     'fa-regular' => array( 'label' => 'Elementor Regular Pro' ),
     'fa-solid' => array( 'label' => 'Elementor Solid Pro' ),
