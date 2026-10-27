@@ -112,6 +112,24 @@ check( array() === hashe_fa7_names_for_style( '7.3.1', 'fas', 'free' ), 'Free Ki
 echo "PASS: Kit catalogs, native libraries, safe editor integration without global styling.\n";
 
 $GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_catalog_fail_page'] = 0;
+$first = hashe_fa7_release_style_catalog( '7.3.1' );
+check( is_array( $first ) && isset( $first['fab'] ) && isset( $first['fasdr'] ), 'Complete release catalog generated' );
+$key = 'hashe_fa7_release_' . md5( '7.3.1' );
+$refresh_key = 'hashe_fa7_refresh_' . md5( '7.3.1' );
+check( isset( $GLOBALS['hashe_transients'][$key] ), 'Version-scoped complete catalog cached' );
+unset( $GLOBALS['hashe_transients'][$refresh_key] );
+$GLOBALS['mock_catalog_fail_page'] = 2;
+$stale = hashe_fa7_release_style_catalog( '7.3.1' );
+check( $first === $stale, 'Failed second metadata page does not overwrite last-good complete catalog' );
+check( 'retry' === $GLOBALS['hashe_transients'][$refresh_key], 'Failed refresh throttled before retry' );
+$GLOBALS['mock_catalog_fail_page'] = 0;
+unset( $GLOBALS['hashe_transients'][$refresh_key] );
+$restored = hashe_fa7_release_style_catalog( '7.3.1' );
+check( $first === $restored, 'Complete metadata refresh atomically reinstated' );
+check( 'fresh' === $GLOBALS['hashe_transients'][$refresh_key], 'Successful refresh interval stored' );
+
+$GLOBALS['hashe_transients'] = array();
 $GLOBALS['mock_kit_method'] = 'js';
 $GLOBALS['mock_kit_subset'] = false;
 $svg_full = hashe_fa7_kit_snapshot( '23f6a60c28' );
