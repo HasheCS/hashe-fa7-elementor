@@ -526,10 +526,24 @@ function hashe_fa7_ajax_catalog() {
         // The customer's licensed SVG bundle already contains the complete
         // family-styles verified above. No Pro SVG paths are redistributed.
     } else {
-        $names = hashe_fa7_filter_names_to_kit( $names, $kit );
-        if ( false === $names ) {
+        $selected = hashe_fa7_filter_names_to_kit( $names, $kit );
+        if ( false === $selected ) {
             wp_send_json_error( 'Kit icon inventory unavailable', 503 );
         }
+        // A By-Icon Web Fonts Kit emits a *global* icon-to-Unicode CSS map,
+        // not a per-style membership map. When the Kit provides several font
+        // families but only a partial icon inventory for one of them, naive
+        // intersection could invent e.g. a Regular house selected only as
+        // Solid. Fail closed rather than misrepresent that customer's choices.
+        if ( 'kit-css' === ( $kit['subset_mode'] ?? '' ) &&
+             count( $kit['family_styles'] ) > 1 &&
+             count( $selected ) < count( $names ) ) {
+            wp_send_json_error(
+                'Exact multi-style By Icon membership is not published by this Kit CSS',
+                422
+            );
+        }
+        $names = $selected;
     }
     wp_send_json( array( 'icons' => $names ) );
 }
