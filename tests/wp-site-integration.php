@@ -33,13 +33,18 @@ if ( ! is_object( $object ) || ! is_array( $before ) || ! count( $before ) ) {
     fwrite( STDERR, "FAIL: canonical tab data not enqueued before guard\n" );
     exit( 4 );
 }
-$line = $before[0];
+$inline = implode( "\n", array_filter( $before, 'is_string' ) );
 $prefix = 'window.hasheFa7ExpectedTabs=';
-if ( 0 !== strpos( $line, $prefix ) ) {
-    echo 'INLINE_VALUE_PREFIX=' . substr( $line, 0, 170 ) . PHP_EOL;
+$start = strpos( $inline, $prefix );
+if ( false === $start ) {
+    echo 'INLINE_DIAGNOSTIC=' . json_encode( array(
+        'entries' => count( $before ),
+        'sizes' => array_map( 'strlen', $before )
+    ) ) . PHP_EOL;
     fwrite( STDERR, "FAIL: unexpected inline prefix\n" );
     exit( 5 );
 }
+$line = substr( $inline, $start );
 $decoded = json_decode( substr( $line, strlen( $prefix ), -1 ), true );
 if ( ! is_array( $decoded ) || 7 !== count( $decoded ) ||
      $names !== array_column( $decoded, 'name' ) ) {
