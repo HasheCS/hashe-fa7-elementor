@@ -47,6 +47,22 @@ jobs:
           php -l tests/live-kit-integration.php
           php tests/live-kit-integration.php
 
+  browser-picker-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Actual Chromium DOM regression for seven distinct icon tabs
+        run: |
+          BROWSER="$(command -v google-chrome || command -v chromium-browser)"
+          test -n "$BROWSER"
+          PROFILE="$(mktemp -d)"
+          trap 'rm -rf "$PROFILE"' EXIT
+          "$BROWSER" --headless=new --no-sandbox --disable-dev-shm-usage \
+            --virtual-time-budget=2500 --user-data-dir="$PROFILE" \
+            --dump-dom "file://$PWD/tests/browser-picker-integrity.html" 2>/dev/null \
+            | grep -F '<body data-fa7-qa="pass">'
+
   release-governance:
     runs-on: ubuntu-latest
     timeout-minutes: 6
