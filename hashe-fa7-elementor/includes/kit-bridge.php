@@ -29,8 +29,14 @@ function hashe_fa7_public_get( $url, $max_bytes = 4000000 ) {
     if ( 'kit.fontawesome.com' === $host ) {
         $allowed = (bool) preg_match( '#^/[a-f0-9]{10}\\.js$#D', $path ) && '' === $query;
     } elseif ( 'ka-p.fontawesome.com' === $host || 'ka-f.fontawesome.com' === $host ) {
-        $allowed = (bool) preg_match( '#^/assets/([a-f0-9]{10})/[0-9]+/kit\\.css$#D', $path, $matches ) &&
-            'token=' . $matches[1] === $query;
+        if ( preg_match( '#^/assets/([a-f0-9]{10})/[0-9]+/kit\.css$#D', $path, $matches ) ) {
+            $allowed = 'token=' . $matches[1] === $query;
+        } elseif ( preg_match(
+            '#^/releases/v7\.[0-9]+\.[0-9]+/css/(?:free|pro)\.min\.css$#D',
+            $path
+        ) ) {
+            $allowed = (bool) preg_match( '/^token=[a-f0-9]{10}$/D', $query );
+        }
     } elseif ( 'api.fontawesome.com' === $host ) {
         $allowed = (bool) preg_match(
             '#^/releases(?:/7\\.[0-9]+\\.[0-9]+/(?:family-styles|icons-minimal))?$#D',
@@ -147,13 +153,28 @@ function hashe_fa7_kit_snapshot( $kit_id ) {
     // DO NOT represent its selected styles.
     $base = (string) ( $config['baseUrl'] ?? '' );
     $path = (string) ( $config['subsetPath'] ?? '' );
-    if ( 'css' !== $method || ! in_array( $base, array( 'https://ka-p.fontawesome.com', 'https://ka-f.fontawesome.com' ), true ) ||
-         ! preg_match( '#^assets/' . preg_quote( $kit_id, '#' ) . '/[0-9]+/kit\.css$#D', $path ) ) {
-        $snapshot['error'] = 'Kit delivery mode is not yet supported by this beta.';
+    if ( 'css' !== $method ||
+         ! in_array( $base, array( 'https://ka-p.fontawesome.com', 'https://ka-f.fontawesome.com' ), true ) ) {
+        $snapshot['error'] = 'Unrecognized Kit delivery mode or asset host.';
         set_transient( $key, $snapshot, 300 );
         return $snapshot;
     }
-    $css = hashe_fa7_public_get( $base . '/' . $path . '?token=' . $kit_id );
+    if ( preg_match( '#^assets/' . preg_quote( $kit_id, '#' ) . '/[0-9]+/kit\.css$#D', $path ) ) {
+        $asset = $base . '/' . $path . '?token=' . $kit_id;
+        $snapshot['subset_mode'] = 'kit-css';
+    } elseif ( '' === $path &&
+               in_array( $startup, array( 'pro.min.css', 'free.min.css' ), true ) &&
+               ( ( 'pro' === $license && 'pro.min.css' === $startup ) ||
+                 ( 'free' === $license && 'free.min.css' === $startup ) ) ) {
+        $asset = $base . '/releases/v' . $snapshot['version'] .
+            '/css/' . $startup . '?token=' . $kit_id;
+        $snapshot['subset_mode'] = 'full';
+    } else {
+        $snapshot['error'] = 'Unsupported or unverified Web Fonts Kit asset path.';
+        set_transient( $key, $snapshot, 300 );
+        return $snapshot;
+    }
+    $css = hashe_fa7_public_get( $asset );
     if ( false === $css ) {
         $snapshot['error'] = 'Could not retrieve selected styles from the Kit CDN.';
         set_transient( $key, $snapshot, 300 );
@@ -186,6 +207,11 @@ function hashe_fa7_kit_snapshot( $kit_id ) {
             continue;
         }
         $family = strtolower( trim( preg_replace( '/[[:space:]]+/', '-', $fm[1] ) ) );
+        // Full Classic styles use font-family "Font Awesome 7 Pro" or
+        // "Font Awesome 7 Free"; public release metadata names them classic.
+        if ( 'pro' === $family || 'free' === $family ) {
+            $family = 'classic';
+        }
         $style = 'brands' === $family ? 'brands' : ( $weights[$wm[1]] ?? '' );
         if ( '' !== $style ) {
             $enabled[$family . ':' . $style] = true;
