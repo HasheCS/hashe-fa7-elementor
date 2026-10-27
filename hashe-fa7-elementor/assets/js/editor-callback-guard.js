@@ -151,6 +151,10 @@
             fetchIcons: library.fetchIcons
         };
         const memory = Object.create(null);
+        // Native Elementor catalog caching is optional. An older editor
+        // session can leave localStorage at quota; a failed native save must
+        // never prevent Elementor from mounting its Icon Library modal.
+        const nativeMemory = Object.create(null);
         const callbacks = Object.create(null);
         // The modal can be reopened while earlier native/third-party fetches
         // remain unresolved. Their callbacks close over the *same* mutable
@@ -172,12 +176,28 @@
                 memory[storagePrefix + settings.name.slice(prefix.length) + storageSuffix] = settings;
                 return;
             }
-            return originals.save.apply(this, arguments);
+            try {
+                return originals.save.apply(this, arguments);
+            } catch (error) {
+                // In Elementor 4.x this synchronous storage exception can
+                // abort onPickerShow *before the React modal is mounted*,
+                // producing the entirely blank Icon Library reported on Amari.
+                // Do not suppress unrelated errors or modify stored data.
+                const quota = error && (error.name === 'QuotaExceededError' ||
+                    error.code === 22 || error.code === 1014);
+                if (!quota || !settings || typeof settings.name !== 'string') {
+                    throw error;
+                }
+                nativeMemory['elementor_' + settings.name + '_icons'] = settings;
+            }
         };
 
         store.get = function (key) {
             if (ownsStorageKey(key)) {
                 return memory[key];
+            }
+            if (Object.prototype.hasOwnProperty.call(nativeMemory, key)) {
+                return nativeMemory[key];
             }
             return originals.get.apply(this, arguments);
         };
