@@ -24,7 +24,8 @@ function wp_remote_get( $url, $options ) {
             'method' => $GLOBALS['mock_kit_method'],
             'license' => $GLOBALS['mock_kit_license'],
             'baseUrl' => 'https://ka-p.fontawesome.com',
-            'startupFilename' => 'free' === $GLOBALS['mock_kit_license'] ? 'free.min.js' : 'pro.min.js'
+            'startupFilename' => ( 'free' === $GLOBALS['mock_kit_license'] ? 'free' : 'pro' ) .
+                ( 'css' === $GLOBALS['mock_kit_method'] ? '.min.css' : '.min.js' )
         );
         if ( $GLOBALS['mock_kit_subset'] ) {
             $cfg['subsetPath'] = 'assets/23f6a60c28/112386267/kit.css';
@@ -33,6 +34,20 @@ function wp_remote_get( $url, $options ) {
     }
     if ( 'https://ka-p.fontawesome.com/assets/23f6a60c28/112386267/kit.css?token=23f6a60c28' === $url ) {
         return array( 'code' => 200, 'body' => $GLOBALS['mock_kit_css'] );
+    }
+    if ( 'https://ka-p.fontawesome.com/releases/v7.3.1/css/pro.min.css?token=23f6a60c28' === $url ) {
+        return array( 'code' => 200, 'body' =>
+            '@font-face{font-family:"Font Awesome 7 Pro";font-weight:900}' .
+            '@font-face{font-family:"Font Awesome 7 Pro";font-weight:300}' .
+            '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}' .
+            '@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400}' .
+            '.fa-github{--fa:"X"}.fa-star{--fa:"Y"}.fa-leaf{--fa:"Z"}' );
+    }
+    if ( 'https://ka-p.fontawesome.com/releases/v7.3.1/css/free.min.css?token=23f6a60c28' === $url ) {
+        return array( 'code' => 200, 'body' =>
+            '@font-face{font-family:"Font Awesome 7 Free";font-weight:900}' .
+            '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}' .
+            '.fa-github{--fa:"X"}.fa-star{--fa:"Y"}' );
     }
     if ( 'https://api.fontawesome.com/releases/7.3.1/family-styles' === $url ) {
         return array( 'code' => 200, 'body' => json_encode( array( 'familyStyles' => array(
@@ -152,3 +167,25 @@ check( is_array( $svg_free ) && empty( $svg_free['error'] ), 'Free full SVG Kit 
 check( array( 'fab', 'fas' ) === array_values( array_intersect( array( 'fab', 'fas' ), array_keys( $svg_free['family_styles'] ) ) ), 'Free family names remain present' );
 check( ! isset( $svg_free['family_styles']['fal'] ) && ! isset( $svg_free['family_styles']['fasdr'] ), 'No Pro families in Free SVG Kit' );
 echo "PASS: SVG full Pro, Free and unsupported subset boundaries are correctly distinguished.\n";
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_kit_method'] = 'css';
+$GLOBALS['mock_kit_subset'] = false;
+$GLOBALS['mock_kit_license'] = 'pro';
+$css_full = hashe_fa7_kit_snapshot( '23f6a60c28' );
+check( is_array( $css_full ) && empty( $css_full['error'] ), 'Full Pro Web Fonts Kit resolved using release CSS' );
+check( 'full' === $css_full['subset_mode'], 'Full CSS mode detected without subsetPath' );
+check( isset( $css_full['family_styles']['fab'] ) &&
+       isset( $css_full['family_styles']['fas'] ) &&
+       isset( $css_full['family_styles']['fal'] ) &&
+       isset( $css_full['family_styles']['fasdr'] ),
+       'Font Awesome 7 Pro Classic fonts match public classic metadata' );
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_kit_license'] = 'free';
+$css_free = hashe_fa7_kit_snapshot( '23f6a60c28' );
+check( is_array( $css_free ) && empty( $css_free['error'] ), 'Full Free Web Fonts Kit resolved' );
+check( isset( $css_free['family_styles']['fab'] ) &&
+       isset( $css_free['family_styles']['fas'] ) &&
+       ! isset( $css_free['family_styles']['fal'] ),
+       'Free Web Fonts do not invent paid font styles' );
+echo "PASS: Full Kit Web Fonts modes recognize Classic Pro/Free and selected styles without overriding Elementor.\n";
+
