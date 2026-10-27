@@ -36,6 +36,7 @@ if ( ! is_object( $object ) || ! is_array( $before ) || ! count( $before ) ) {
 $line = $before[0];
 $prefix = 'window.hasheFa7ExpectedTabs=';
 if ( 0 !== strpos( $line, $prefix ) ) {
+    echo 'INLINE_VALUE_PREFIX=' . substr( $line, 0, 170 ) . PHP_EOL;
     fwrite( STDERR, "FAIL: unexpected inline prefix\n" );
     exit( 5 );
 }
