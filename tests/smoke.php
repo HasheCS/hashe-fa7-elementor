@@ -9,6 +9,8 @@ function set_transient( $key, $value, $ttl ) { $GLOBALS['hashe_transients'][$key
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
 function wp_remote_retrieve_response_code( $response ) { return $response['code']; }
 function wp_remote_retrieve_body( $response ) { return $response['body']; }
+$GLOBALS['mock_catalog_fail_page'] = 0;
+$GLOBALS['mock_catalog_requests'] = 0;
 $GLOBALS['mock_kit_method'] = 'css';
 $GLOBALS['mock_kit_css'] = '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400}';
 function wp_remote_get( $url, $options ) {
@@ -25,6 +27,27 @@ function wp_remote_get( $url, $options ) {
             array( 'family' => 'classic', 'style' => 'light', 'shorthand' => 'light', 'prefix' => 'fal' ),
             array( 'family' => 'classic', 'style' => 'solid', 'shorthand' => 'solid', 'prefix' => 'fas' )
         ) ) ) );
+    }
+    if ( preg_match( '#^https://api\\.fontawesome\\.com/releases/7\\.3\\.1/icons-minimal\\?page=([0-9]+)&page_size=500$#D', $url, $matches ) ) {
+        $page = (int) $matches[1];
+        $GLOBALS['mock_catalog_requests']++;
+        if ( $GLOBALS['mock_catalog_fail_page'] === $page ) {
+            return array( 'code' => 503, 'body' => '' );
+        }
+        $brands = array( 'prefix' => 'fab' );
+        $sharp_regular = array( 'prefix' => 'fasdr' );
+        $classic_solid = array( 'prefix' => 'fas' );
+        $empty = array();
+        $icons = 1 === $page ? array(
+            array( 'id' => 'github', 'familyStylesByLicense' => array( 'free' => array( $brands ), 'pro' => $empty ) ),
+            array( 'id' => 'leaf', 'familyStylesByLicense' => array( 'free' => $empty, 'pro' => array( $sharp_regular ) ) ),
+        ) : array(
+            array( 'id' => 'rocket', 'familyStylesByLicense' => array( 'free' => $empty, 'pro' => array( $sharp_regular ) ) ),
+            array( 'id' => 'star', 'familyStylesByLicense' => array( 'free' => $empty, 'pro' => array( $classic_solid ) ) ),
+        );
+        return 1 === $page || 2 === $page
+            ? array( 'code' => 200, 'body' => json_encode( array( 'totalPageCount' => 2, 'icons' => $icons ) ) )
+            : array( 'code' => 404, 'body' => '' );
     }
     return array( 'code' => 404, 'body' => '' );
 }
@@ -70,7 +93,24 @@ check( 5 === count( $kit_with_native ), 'Two Kit tabs added while all native tab
 foreach ( $native as $native_id => $native_config ) {
     check( isset( $kit_with_native[$native_id] ) && $native_config === $kit_with_native[$native_id], 'Native tab preserved: ' . $native_id );
 }
-check( 3781 === count( json_decode( file_get_contents( $dir . 'data/fas.json' ), true )['icons'] ), 'Pro names available' );
+// Old static Pro JSON files were *identical* across distinct styles and are
+// not permitted as Kit catalog sources. The REST metadata must be authoritative.
+check(
+    md5_file( $dir . 'data/fas.json' ) === md5_file( $dir . 'data/fasdr.json' ),
+    'Historical Pro JSON was duplicated across families (regression fixture)'
+);
+$GLOBALS['hashe_transients'] = array();
+check( array( 'github' ) === hashe_fa7_names_for_style( '7.3.1', 'fab' ), 'Brands contain only names with fab membership' );
+check( array( 'leaf', 'rocket' ) === hashe_fa7_names_for_style( '7.3.1', 'fasdr' ), 'Sharp Duotone Regular contains only matching release icons' );
+check( array( 'star' ) === hashe_fa7_names_for_style( '7.3.1', 'fas' ), 'Classic Solid names remain separate' );
+check( false === hashe_fa7_names_for_style( '7.3.1', 'bad<script>' ), 'Invalid family prefix rejected' );
+check( 2 === $GLOBALS['mock_catalog_requests'], 'All selected styles share one complete version-scoped catalog fetch' );
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_catalog_fail_page'] = 2;
+check( false === hashe_fa7_names_for_style( '7.3.1', 'fasdr' ), 'Partial API failure does not yield incomplete style catalog' );
+check( ! $GLOBALS['hashe_transients'], 'Partial response is never published to cache' );
+$GLOBALS['mock_catalog_fail_page'] = 0;
+check( array( 'leaf', 'rocket' ) === hashe_fa7_names_for_style( '7.3.1', 'fasdr' ), 'Successful retry populates complete style catalog' );
 
 check( 'fa-sharp-duotone fa-regular' === $pro['hashe-fa7-fasdr']['displayPrefix'], 'Sharp Duotone style classes reflect Kit' );
 $five_native = array(
