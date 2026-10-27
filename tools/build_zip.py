@@ -63,8 +63,7 @@ def build(output):
         names.append(item)
     names.sort(key=lambda p: p.relative_to(PLUGIN).as_posix())
     output.parent.mkdir(parents=True, exist_ok=True)
-    with zipfile.ZipFile(output, mode="w", compression=zipfile.ZIP_DEFLATED,
-                         compresslevel=9) as archive:
+    with zipfile.ZipFile(output, mode="w", compression=zipfile.ZIP_DEFLATED) as archive:
         for file in names:
             arcname = NAME + "/" + file.relative_to(PLUGIN).as_posix()
             info = zipfile.ZipInfo(arcname, date_time=(1980, 1, 1, 0, 0, 0))
