@@ -1,5 +1,6 @@
 <?php
 defined( 'ABSPATH' ) || exit;
+require_once dirname( __DIR__ ) . '/hashe-fa7-elementor/hashe-fa7-elementor.php';
 \Elementor\Plugin::$instance->editor->set_edit_mode( true );
 $tabs = \Elementor\Icons_Manager::get_icon_manager_tabs();
 foreach ( $tabs as $key => $tab ) {
