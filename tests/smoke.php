@@ -28,6 +28,8 @@ function wp_remote_get( $url, $options ) {
 function add_filter( $name, $callback, $priority = 10 ) { $GLOBALS['registered_filter'] = array( $name, $callback, $priority ); }
 function add_action( $name, $callback, $priority = 10 ) { $GLOBALS['registered_action'] = array( $name, $callback, $priority ); }
 function plugins_url( $path, $file ) { return plugin_dir_url( $file ) . $path; }
+function wp_enqueue_style( $handle, $src, $deps, $ver ) { $GLOBALS['compat_style'] = compact( 'handle', 'src', 'deps', 'ver' ); }
+function wp_add_inline_style( $handle, $css ) { $GLOBALS['compat_inline'] = compact( 'handle', 'css' ); }
 function wp_enqueue_script( $handle, $src, $deps, $ver, $footer ) { $GLOBALS['editor_script'] = compact( 'handle', 'src', 'deps', 'ver', 'footer' ); }
 function plugin_dir_path( $file ) { return dirname( $file ) . DIRECTORY_SEPARATOR; }
 function plugin_dir_url( $file ) { return 'https://example.test/wp-content/plugins/' . basename( dirname( $file ) ) . '/'; }
@@ -68,4 +70,22 @@ foreach ( $native as $native_id => $native_config ) {
     check( isset( $kit_with_native[$native_id] ) && $native_config === $kit_with_native[$native_id], 'Native tab preserved: ' . $native_id );
 }
 check( 3781 === count( json_decode( file_get_contents( $dir . 'data/fas.json' ), true )['icons'] ), 'Pro names available' );
+$kit_snapshot = hashe_fa7_kit_snapshot( '23f6a60c28' );
+$compat = hashe_fa7_native_compat_rules( $kit_snapshot );
+check( 4 === count( $compat ), 'Two-style Kit requires four native compatibility rules' );
+check( false !== strpos( $compat['solid'], 'Hashe Elementor Native Solid' ), 'Solid prefers locally licensed Free font' );
+check( false !== strpos( $compat['regular'], 'Hashe Elementor Native Regular' ), 'Regular prefers locally licensed Free font' );
+check( false !== strpos( $compat['light-fallback'], 'Sharp Duotone' ), 'Native Light fallback uses Kit-supplied font, not bundled Pro assets' );
+check( false !== strpos( $compat['duotone-fallback'], 'Sharp Duotone' ), 'Native Duotone fallback uses Kit-supplied font, not bundled Pro assets' );
+check( false !== strpos( $compat['duotone-fallback'], '::after' ) && false !== strpos( $compat['duotone-fallback'], 'display:none' ), 'Duotone second layer hidden to avoid doubled glyph' );
+hashe_fa7_enqueue_native_compat();
+check( 'hashe-fa7-native-compat' === ( $GLOBALS['compat_style']['handle'] ?? '' ), 'Conditional compatibility CSS enqueued' );
+check( false !== strpos( $GLOBALS['compat_inline']['css'], 'display:none' ), 'Conditional Duotone layer rule emitted' );
+$full_kit = $kit_snapshot;
+foreach ( array( 'fas', 'far', 'fal', 'fad' ) as $style ) { $full_kit['family_styles'][$style] = array( 'style' => $style ); }
+check( array() === hashe_fa7_native_compat_rules( $full_kit ), 'Never override already-enabled Classic fonts' );
+check( array() === hashe_fa7_native_compat_rules( array( 'method' => 'js' ) ), 'Do not inject Web Fonts rules for SVG Kit' );
+$no_sharp = $kit_snapshot;
+unset( $no_sharp['family_styles']['fasdr'] );
+check( 2 === count( hashe_fa7_native_compat_rules( $no_sharp ) ), 'Only Free fallback when no Sharp Duotone Kit style is licensed' );
 echo "PASS: Free and Pro-Kit modes, catalogs, fonts, and library preservation." . PHP_EOL;
