@@ -13,10 +13,23 @@ function wp_remote_retrieve_body( $response ) { return $response['body']; }
 $GLOBALS['mock_catalog_fail_page'] = 0;
 $GLOBALS['mock_catalog_requests'] = 0;
 $GLOBALS['mock_kit_method'] = 'css';
+$GLOBALS['mock_kit_subset'] = true;
+$GLOBALS['mock_kit_license'] = 'pro';
 $GLOBALS['mock_kit_css'] = '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400}.fa-github{--fa:"X"}.fa-leaf{--fa:"Y"}.fa-rocket{--fa:"Z"}.fa-home,.fa-house{--fa:"H"}';
 function wp_remote_get( $url, $options ) {
     if ( 'https://kit.fontawesome.com/23f6a60c28.js' === $url ) {
-        return array( 'code' => 200, 'body' => 'window.FontAwesomeKitConfig = {"token":"23f6a60c28","version":"7.3.1","method":"' . $GLOBALS['mock_kit_method'] . '","baseUrl":"https://ka-p.fontawesome.com","subsetPath":"assets/23f6a60c28/112386267/kit.css"};' );
+        $cfg = array(
+            'token' => '23f6a60c28',
+            'version' => '7.3.1',
+            'method' => $GLOBALS['mock_kit_method'],
+            'license' => $GLOBALS['mock_kit_license'],
+            'baseUrl' => 'https://ka-p.fontawesome.com',
+            'startupFilename' => 'free' === $GLOBALS['mock_kit_license'] ? 'free.min.js' : 'pro.min.js'
+        );
+        if ( $GLOBALS['mock_kit_subset'] ) {
+            $cfg['subsetPath'] = 'assets/23f6a60c28/112386267/kit.css';
+        }
+        return array( 'code' => 200, 'body' => 'window.FontAwesomeKitConfig = ' . json_encode( $cfg ) . ';' );
     }
     if ( 'https://ka-p.fontawesome.com/assets/23f6a60c28/112386267/kit.css?token=23f6a60c28' === $url ) {
         return array( 'code' => 200, 'body' => $GLOBALS['mock_kit_css'] );
@@ -94,3 +107,27 @@ check( ! isset( $pro['hashe-fa7-fas'] ), 'Classic Solid omitted when not selecte
 check( ! function_exists( 'hashe_fa7_native_compat_rules' ), 'Do not globally override Elementor native font classes' );
 check( ! function_exists( 'hashe_fa7_enqueue_native_compat' ), 'No site-wide Classic Pro fallback overrides' );
 echo "PASS: Kit catalogs, native libraries, safe editor integration without global styling.\n";
+
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_kit_method'] = 'js';
+$GLOBALS['mock_kit_subset'] = false;
+$svg_full = hashe_fa7_kit_snapshot( '23f6a60c28' );
+check( is_array( $svg_full ) && empty( $svg_full['error'] ), 'Full SVG Pro Kit metadata can be resolved' );
+check( 'js' === $svg_full['method'] && 'full' === $svg_full['subset_mode'], 'Distinguish full SVG from CSS or subset SVG' );
+check( isset( $svg_full['family_styles']['fal'] ) && isset( $svg_full['family_styles']['fasdr'] ), 'Full SVG Pro exposes official classic and sharp-duotone styles' );
+$svg_tabs = hashe_fa7_register_icon_tabs( $existing );
+check( 1 + count( $svg_full['family_styles'] ) === count( $svg_tabs ), 'Full SVG Kit dynamic families registered without false extras' );
+check( ! isset( $svg_full['family_styles']['fans'] ), 'Pro Plus Notdog family not assumed in ordinary Pro Kit' );
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_kit_subset'] = true;
+$svg_subset = hashe_fa7_kit_snapshot( '23f6a60c28' );
+check( is_array( $svg_subset ) && ! empty( $svg_subset['error'] ), 'Curated SVG subset fails closed without reliable inventory' );
+check( 1 === count( hashe_fa7_register_icon_tabs( $existing ) ), 'Unsupported SVG By Icon mode does not invent tabs' );
+$GLOBALS['hashe_transients'] = array();
+$GLOBALS['mock_kit_subset'] = false;
+$GLOBALS['mock_kit_license'] = 'free';
+$svg_free = hashe_fa7_kit_snapshot( '23f6a60c28' );
+check( is_array( $svg_free ) && empty( $svg_free['error'] ), 'Free full SVG Kit can be detected' );
+check( array( 'fab', 'fas' ) === array_values( array_intersect( array( 'fab', 'fas' ), array_keys( $svg_free['family_styles'] ) ) ), 'Free family names remain present' );
+check( ! isset( $svg_free['family_styles']['fal'] ) && ! isset( $svg_free['family_styles']['fasdr'] ), 'No Pro families in Free SVG Kit' );
+echo "PASS: SVG full Pro, Free and unsupported subset boundaries are correctly distinguished.\n";
