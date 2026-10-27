@@ -5,6 +5,13 @@ $GLOBALS['test_kit_id'] = '';
 $GLOBALS['registered_filter'] = null;
 $GLOBALS['hashe_transients'] = array();
 function is_wp_error( $response ) { return false; }
+$GLOBALS['hashe_mock_options'] = array();
+function add_option( $name, $value, $deprecated = '', $autoload = 'yes' ) {
+    if ( array_key_exists( $name, $GLOBALS['hashe_mock_options'] ) ) { return false; }
+    $GLOBALS['hashe_mock_options'][$name] = $value;
+    return true;
+}
+function delete_option( $name ) { unset( $GLOBALS['hashe_mock_options'][$name] ); return true; }
 function get_transient( $key ) { return $GLOBALS['hashe_transients'][$key] ?? false; }
 function set_transient( $key, $value, $ttl ) { $GLOBALS['hashe_transients'][$key] = $value; return true; }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
@@ -89,7 +96,11 @@ function wp_add_inline_style( $handle, $css ) { $GLOBALS['style_inline'] = compa
 function wp_enqueue_script( $handle, $src, $deps, $ver, $footer ) { $GLOBALS['editor_script'] = compact( 'handle', 'src', 'deps', 'ver', 'footer' ); }
 function plugin_dir_path( $file ) { return dirname( $file ) . DIRECTORY_SEPARATOR; }
 function plugin_dir_url( $file ) { return 'https://example.test/wp-content/plugins/' . basename( dirname( $file ) ) . '/'; }
-function get_option( $key, $default = '' ) { return 'elementor_font_awesome_pro_kit_id' === $key ? $GLOBALS['test_kit_id'] : $default; }
+function get_option( $key, $default = '' ) {
+    return 'elementor_font_awesome_pro_kit_id' === $key
+        ? $GLOBALS['test_kit_id']
+        : ( $GLOBALS['hashe_mock_options'][$key] ?? $default );
+}
 require_once __DIR__ . '/../hashe-fa7-elementor/hashe-fa7-elementor.php';
 function check( $passed, $message ) { if ( ! $passed ) { fwrite( STDERR, 'FAIL: ' . $message . PHP_EOL ); exit( 1 ); } }
 check( false === hashe_fa7_public_get( 'http://kit.fontawesome.com/23f6a60c28.js' ), 'HTTP Kit requests rejected' );
@@ -144,6 +155,8 @@ unset( $GLOBALS['hashe_transients'][$refresh_key] );
 $restored = hashe_fa7_release_style_catalog( '7.3.1' );
 check( $first === $restored, 'Complete metadata refresh atomically reinstated' );
 check( 'fresh' === $GLOBALS['hashe_transients'][$refresh_key], 'Successful refresh interval stored' );
+check( empty( $GLOBALS['hashe_mock_options'] ), 'Single-flight update releases WordPress catalog lock on success' );
+
 
 $GLOBALS['hashe_transients'] = array();
 $GLOBALS['mock_kit_css'] =
