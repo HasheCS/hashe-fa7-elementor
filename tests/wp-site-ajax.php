@@ -18,5 +18,6 @@ if ( ! $admins || ! user_can( $admins[0]->ID, 'edit_posts' ) ) {
 wp_set_current_user( $admins[0]->ID );
 $_GET['style'] = $style;
 $_GET['_wpnonce'] = wp_create_nonce( 'hashe_fa7_catalog' );
+$_REQUEST['_wpnonce'] = $_GET['_wpnonce'];
 require_once dirname( __DIR__ ) . '/hashe-fa7-elementor/hashe-fa7-elementor.php';
 hashe_fa7_ajax_catalog();
