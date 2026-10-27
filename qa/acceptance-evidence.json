@@ -3,7 +3,7 @@
   "blueprint": "HASHE_FA7_ELEMENTOR_COMPLETE_ENGINEERING_BLUEPRINT_2026-10-27.md",
   "source_commit": "cb8cad42da7bc5457a5524e9554ff1f004d092fa",
   "last_reviewed": "2026-10-27",
-  "release_status": "BLOCKED_FIVE_VISUAL_AND_INTEROPERABILITY_FAILURES",
+  "release_status": "BLOCKED_REAL_EDITOR_SVG_BY_ICON_PROPLUS_AND_FULL_MATRIX",
   "checks": [
     {
       "id": "T01",
@@ -15,8 +15,8 @@
     },
     {
       "id": "T02",
-      "status": "fail",
-      "evidence": "FAIL on current Amari beta.3 screenshot 2026-10-27: many identical Brands categories despite WP-CLI returning only two distinct Hashe categories; visual editor does not meet exactly-two requirement.",
+      "status": "pending",
+      "evidence": "Previous beta.3 real screenshot FAILED duplicate Brands. Consolidated candidate now uses canonical server tab restore and Chromium DOM passes 5+2; actual logged-in picker must be revalidated before pass.",
       "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
@@ -39,8 +39,8 @@
     },
     {
       "id": "T05",
-      "status": "fail",
-      "evidence": "FAIL: category titles repeated as numerous Font Awesome 7.3.1 Kit - Brands entries in user's 1264x880 Elementor popup screenshot. Earlier beta.2 label-only passing evidence is superseded.",
+      "status": "pending",
+      "evidence": "Prior beta.3 Brands labels duplicated in real screenshot. New code + mock Chrome DOM verified two distinct Hashe labels, but no signed-in real Elementor popup evidence yet.",
       "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
@@ -127,8 +127,8 @@
     },
     {
       "id": "T16",
-      "status": "fail",
-      "evidence": "FAIL: browser icon picker presents duplicated Hashe categories; async callback guard unit tests omit real modal identity and initial library-array contamination. Race root cause not yet fully proven.",
+      "status": "pending",
+      "evidence": "Prior beta.3 icon picker corrupted by async callback routing and stale client state. New 5+2 callback tests and real Chromium fixture pass. Real editor and localStorage browser acceptance pending.",
       "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
@@ -167,16 +167,16 @@
     },
     {
       "id": "T21",
-      "status": "fail",
-      "evidence": "FAIL in installed Amari beta.3 (separate hotfix branch): global !important .fas/.far/.fal/.fad native font overrides + Classic Light/Duotone replaced by Sharp Duotone; violates blueprint no-global-override.",
+      "status": "pending",
+      "evidence": "Beta.3 added forbidden global .fas/.far/.fal/.fad overrides; code removed in beta.4 and consolidated source. Third-party plugin and native frontend coexistence still requires real browser matrix.",
       "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
     },
     {
       "id": "T22",
-      "status": "fail",
-      "evidence": "FAIL in real popup: duplicate My Libraries entries, original style labels lost across multiple categories. PHP still returns unique seven, so client state requires browser investigation.",
+      "status": "pending",
+      "evidence": "Beta.3 screenshot duplicated Brands. Consolidated code prevents stale Hashe identities, with Chromium fixture evidence; real search/select/reopen acceptance pending.",
       "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-icon-library-ppp-corrective-audit-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
@@ -198,5 +198,5 @@
       "signoff": ""
     }
   ],
-  "review_scope": "27 October screenshot is of installed Amari beta.3 from separate hotfix branch, not necessarily current integrated branch HEAD; these user-acceptance failures block promotion of any new candidate until reproduced/fixed. Same Kit unchanged."
+  "review_scope": "Beta.3 screenshot remains a historical failure; consolidated engineering candidate includes beta4 repair plus Web Fonts/SVG/catalog fixes, but no authenticated Elementor browser acceptance. No final ZIP approved."
 }
