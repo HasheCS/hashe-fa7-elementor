@@ -14,6 +14,8 @@ function add_option( $name, $value, $deprecated = '', $autoload = 'yes' ) {
 function delete_option( $name ) { unset( $GLOBALS['hashe_mock_options'][$name] ); return true; }
 function get_transient( $key ) { return $GLOBALS['hashe_transients'][$key] ?? false; }
 function set_transient( $key, $value, $ttl ) { $GLOBALS['hashe_transients'][$key] = $value; return true; }
+function wp_create_nonce( $action ) { return 'unit-only-nonce'; }
+function check_ajax_referer( $action, $query_arg = false ) { return true; }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
 function wp_remote_retrieve_response_code( $response ) { return $response['code']; }
 function wp_remote_retrieve_body( $response ) { return $response['body']; }
