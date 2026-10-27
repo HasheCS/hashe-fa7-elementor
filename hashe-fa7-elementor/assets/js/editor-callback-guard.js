@@ -244,6 +244,17 @@
                 return open.apply(this, arguments);
             };
         }
+        // Elementor may have created the modal *before* this editor script
+        // installed, leaving a show listener bound to the original function.
+        // Hook the public show() entrypoint as well so a stale tab array is
+        // repaired before every modal opening regardless of listener timing.
+        if (typeof manager.show === 'function') {
+            const originalShow = manager.show;
+            manager.show = function () {
+                restoreExpectedTabs(editor);
+                return originalShow.apply(this, arguments);
+            };
+        }
         library.__hasheFa7CallbackGuard = true;
         return true;
     }
