@@ -21,6 +21,7 @@ function sanitize_key( $key ) { return preg_replace( '/[^a-z0-9_\\-]/', '', strt
 function wp_unslash( $str ) { return stripslashes( $str ); }
 function wp_send_json( $data ) { throw new RuntimeException( 'JSON_OK:' . json_encode( $data ) ); }
 function wp_send_json_error( $message, $status = 200 ) { throw new RuntimeException( 'JSON_ERROR:' . $status . ':' . $message ); }
+function wp_parse_url( $url ) { return parse_url( $url ); }
 function home_url( $path = '/' ) { return 'https://example.test/'; }
 function admin_url( $path ) { return 'https://example.test/wp-admin/' . $path; }
 function wp_remote_retrieve_response_code( $response ) { return $response['code']; }
@@ -369,3 +370,25 @@ $mixed = hashe_fa7_kit_snapshot( '23f6a60c28' );
 check( 'kit-css' === $mixed['subset_mode'],
     'A custom or unsupported face prevents incorrectly assuming all By Style font assets are complete' );
 
+
+$test_tabs = array(
+  'native' => array( 'name' => 'fa-solid',
+      'fetchJson' => 'http://example.test/wp-content/plugins/elementor-pro/assets/lib/font-awesome-pro/solid.js' ),
+  'hashe' => array( 'name' => 'hashe-fa7-fab',
+      'fetchJson' => 'http://example.test/wp-admin/admin-ajax.php?action=hashe_fa7_catalog&style=fab&_wpnonce=test' ),
+  'external' => array( 'name' => 'outside', 'fetchJson' => 'http://evil.example/icons.json' ),
+  'already-secure' => array( 'name' => 'another', 'fetchJson' => 'https://example.test/icons.json' ),
+  'wrong-subdirectory' => array( 'name' => 'other-site', 'fetchJson' => 'http://example.test2/a.json' ),
+  'auth' => array( 'name' => 'bad', 'fetchJson' => 'http://user:pass@example.test/icons.json' ),
+);
+$secure = hashe_fa7_normalize_local_icon_fetch_urls( $test_tabs );
+check( '/wp-content/plugins/elementor-pro/assets/lib/font-awesome-pro/solid.js' ===
+    $secure['native']['fetchJson'], 'Native Pro HTTP icon JSON converted to secure same-origin path' );
+check( '/wp-admin/admin-ajax.php?action=hashe_fa7_catalog&style=fab&_wpnonce=test' ===
+    $secure['hashe']['fetchJson'], 'Kit editor AJAX nonce and style preserved in secure local URL' );
+foreach ( array( 'external', 'already-secure', 'wrong-subdirectory', 'auth' ) as $name ) {
+    check( $secure[$name] === $test_tabs[$name], 'Unrelated and already-secure URLs unchanged: ' . $name );
+}
+check( $secure['native']['name'] === 'fa-solid',
+    'Normalizing native fetch URLs never modifies native icon library identity' );
+echo "PASS: Same-origin mixed-content Pro icon catalogs and Kit AJAX securely normalized.\n";
