@@ -1,0 +1,31 @@
+/*!
+ * Kit-restricted Elementor Pro legacy icon compatibility.
+ *
+ * When a site uses a deliberately restricted Font Awesome 7 Kit, Elementor
+ * Pro still registers all five historic icon categories. The selected Kit
+ * may not supply their fonts, leaving empty previews and frontend glyphs.
+ *
+ * Native Solid / Regular use the plugin's bundled Font Awesome 7 Free
+ * fonts when an icon is Free. If it isn't, let the *already licensed* Kit's
+ * selected Sharp Duotone font display a recognizable fallback.
+ *
+ * Native Light and Duotone can never be faithfully restored without their
+ * corresponding font assets; they use the selected Sharp Duotone font as a
+ * visual fallback, NOT as a replacement for the original style.
+ *
+ * All classes remain unchanged in saved Elementor content. Kit, no extra
+ * credential, no redistribution of Pro assets.
+ */
+@font-face {
+  font-family: "Hashe Elementor Native Solid";
+  src: url("../webfonts/fa-solid-900.woff2") format("woff2");
+  font-weight: 900;
+  font-display: block;
+}
+@font-face {
+  font-family: "Hashe Elementor Native Regular";
+  src: url("../webfonts/fa-regular-400.woff2") format("woff2");
+  font-weight: 400;
+  font-display: block;
+}
+/* Per-style compatibility selectors are injected only when that Classic family is absent from the Kit. */
