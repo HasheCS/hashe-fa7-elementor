@@ -249,8 +249,12 @@ try {
     hashe_fa7_ajax_catalog();
     check( false, 'Multi-style selected-By-Icon ambiguity must be rejected' );
 } catch ( RuntimeException $error ) {
-    check( 0 === strpos( $error->getMessage(), 'JSON_ERROR:422:' ),
-        'Multi-style By Icon subset must not guess icon family membership' );
+    check( 0 === strpos( $error->getMessage(), 'JSON_OK:' ),
+        'Ambiguous subset returns Elementor-compatible JSON, not malformed error payload' );
+    $diagnostic = json_decode( substr( $error->getMessage(), strlen( 'JSON_OK:' ) ), true );
+    check( is_array( $diagnostic ) && array() === $diagnostic['icons'] &&
+        false !== strpos( $diagnostic['diagnostic'], 'multi-style By Icon' ),
+        'Multi-style By Icon fails closed without destabilizing Elementor icon picker' );
 }
 $GLOBALS['hashe_transients'] = array();
 $GLOBALS['mock_kit_css'] =
