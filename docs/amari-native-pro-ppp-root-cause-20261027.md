@@ -60,3 +60,24 @@ This evidence strongly identifies the configured Kit and Elementor's native Pro 
 2. Do not modify native Elementor tabs or load unauthorized paid fonts.
 3. If the user elects to enable Classic styles in the Kit, repeat logged-in browser acceptance of all five Pro tabs and all Hashe tabs, including saved widgets and frontend.
 4. Maintain separate engineering work for exact SVG/By Icon discovery and complete release acceptance. Do not mark a partially tested beta complete.
+
+## Supplemental finding and deployed native callback hotfix (27 October 2026)
+
+**Prior root-cause assessment above is incomplete for the reported regression.** The fact that some Kit font faces are not selected cannot explain why an Elementor-native catalog's asynchronous result is delivered to the wrong picker tab. This newer, direct inspection of the actual installed Elementor editor source identifies an independent plugin-side callback problem.
+
+The installed Elementor 4.3.5 JS at `wp-content/plugins/elementor/assets/js/editor.js` implements `iconManager.library.initIconType(libraryConfig, callback)` by assigning **one shared mutable** `_this.notifyCallback = callback`. The asynchronous fetch invokes `normalizeIconList`, then `this.runCallback(library)`; without per-library routing, whichever native/Hashe request initialized last can own that callback. Original Hashe beta.2 guard intercepted only `hashe-fa7-` callbacks; a native response could therefore invoke an unrelated callback while multiple categories were being loaded.
+
+**Code hotfix:** `assets/js/editor-callback-guard.js` now associates callbacks with **every** library's exact `settings.name` (native and Hashe) while restricting localStorage interception to Hashe only. `hashe-fa7-elementor.php` now versions the editor script by its file modification time instead of reusing a stale beta version URL. Existing Kit discovery, Kit settings, native icons, native CSS, Elementor Pro, and frontend logic are unmodified.
+
+**Regression fixture:** The Node editor test now initializes all five native Pro libraries plus additional Hashe libraries concurrently, with intentionally interleaved response delays, and verifies each callback returns to its owning tab once. All PHP 7.4 / 8.2 / 8.3 editor and PHP smoke regression checks passed in the isolated engineering branch.
+
+**Applied to Amari, safely:**
+- Baseline compared byte-for-byte to the pinned previous beta repository revision `cb8cad42da7bc5457a5524e9554ff1f004d092fa` **before modification**.
+- Full installed plugin backed up and tar verified at `/bigdisk/home/devsasseagency/.hashe-fa7-backups/amari-native-icon-callback-20261027T042317Z.tar.gz`. This is a private backup location, **not** a download or public file link.
+- Only the guard JS and the main plugin PHP enqueue version were changed in place; no database changes, plugin deactivation, Kit changes, WordPress admin UI changes, or site-wide cache purge.
+- PHP lint passed; checksummed new guard: `bbee217d62d66786ac912728d6c1b11dc1207a36c78d25595da60615e99a2fc8`.
+- WP-CLI editor-mode post-deployment: `NATIVE_TABS=5`, `HASHE_TABS=2`, `KIT=23f6a60c28`, `GUARD_VERSION=GUARD_MTIME=1793074997`.
+- Public static JS URL `https://dev.sasseagency.com/amari/wp-content/plugins/hashe-fa7-elementor/assets/js/editor-callback-guard.js?ver=1793074997` returned HTTP 200, 5,139 bytes and contains the name-based routing fix.
+- Amari still reports plugin beta.2 because this was a targeted installed-version hotfix, **not** a release or promotion of incomplete integration work. It is not evidence that the entire development branch was deployed.
+
+**Not yet verified:** A signed-in editor visual test must confirm that each of the five original Elementor categories displays its own icons, not blanks, after the JavaScript hotfix. The missing-font concern for styles absent from the Kit is separate and must not be represented as the sole regression cause. Do not mark T04 fully passed until visual and saved-widget checks are completed.
