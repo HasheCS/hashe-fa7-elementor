@@ -121,3 +121,39 @@ function hashe_fa7_enqueue_editor_callback_guard() {
 }
 add_action( 'elementor/editor/after_enqueue_scripts', 'hashe_fa7_enqueue_editor_callback_guard', 20 );
 
+
+/**
+ * Keep the version-scoped catalog warm for active customers without asking
+ * them to configure another token or manually update a list of styles.
+ *
+ * WP-Cron is a best-effort prewarmer: editor AJAX remains the reliable
+ * on-demand fallback when sites disable cron or have sparse traffic.
+ * This job never updates installed Free fonts or the customer's Kit settings.
+ */
+function hashe_fa7_refresh_catalog_job() {
+    $kit_id = trim( (string) get_option( 'elementor_font_awesome_pro_kit_id', '' ) );
+    if ( ! preg_match( '/^[a-f0-9]{10}$/D', $kit_id ) ) {
+        return;
+    }
+    $kit = hashe_fa7_kit_snapshot( $kit_id );
+    if ( ! is_array( $kit ) || ! empty( $kit['error'] ) ||
+         empty( $kit['family_styles'] ) ) {
+        return;
+    }
+    // Exactly one full release index is built/reused for all selected tabs.
+    hashe_fa7_release_style_catalog( $kit['version'] );
+}
+add_action( 'hashe_fa7_refresh_catalog', 'hashe_fa7_refresh_catalog_job' );
+
+function hashe_fa7_schedule_refresh() {
+    if ( ! wp_next_scheduled( 'hashe_fa7_refresh_catalog' ) ) {
+        wp_schedule_event( time() + 120, 'hourly', 'hashe_fa7_refresh_catalog' );
+    }
+}
+add_action( 'init', 'hashe_fa7_schedule_refresh' );
+register_activation_hook( __FILE__, 'hashe_fa7_schedule_refresh' );
+
+function hashe_fa7_unschedule_refresh() {
+    wp_clear_scheduled_hook( 'hashe_fa7_refresh_catalog' );
+}
+register_deactivation_hook( __FILE__, 'hashe_fa7_unschedule_refresh' );
