@@ -13,7 +13,7 @@ function wp_remote_retrieve_body( $response ) { return $response['body']; }
 $GLOBALS['mock_catalog_fail_page'] = 0;
 $GLOBALS['mock_catalog_requests'] = 0;
 $GLOBALS['mock_kit_method'] = 'css';
-$GLOBALS['mock_kit_css'] = '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400}';
+$GLOBALS['mock_kit_css'] = '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}@font-face{font-family:"Font Awesome 7 Sharp Duotone";font-weight:400}.fa-github{--fa:"X"}.fa-leaf{--fa:"Y"}.fa-rocket{--fa:"Z"}.fa-home,.fa-house{--fa:"H"}';
 function wp_remote_get( $url, $options ) {
     if ( 'https://kit.fontawesome.com/23f6a60c28.js' === $url ) {
         return array( 'code' => 200, 'body' => 'window.FontAwesomeKitConfig = {"token":"23f6a60c28","version":"7.3.1","method":"' . $GLOBALS['mock_kit_method'] . '","baseUrl":"https://ka-p.fontawesome.com","subsetPath":"assets/23f6a60c28/112386267/kit.css"};' );
@@ -84,6 +84,11 @@ check( 3 === count( $pro ), 'With two-style Kit: two selected Kit tabs and origi
 check( isset( $pro['hashe-fa7-fasdr'] ), 'Sharp Duotone Regular selected by Kit' );
 check( isset( $pro['hashe-fa7-fab'] ), 'Brands selected by Kit' );
 check( ! isset( $pro['hashe-fa7-fas'] ), 'Classic Solid omitted when not selected' );
+$kit_snapshot = hashe_fa7_kit_snapshot( '23f6a60c28' );
+check( isset( $kit_snapshot['icon_names']['github'] ), 'Kit CSS icon selector inventory is recorded' );
+check( isset( $kit_snapshot['icon_names']['house'] ) && isset( $kit_snapshot['icon_names']['home'] ), 'Comma-grouped Kit CSS aliases both included' );
+check( array( 'github', 'leaf' ) === hashe_fa7_filter_names_to_kit( array( 'github', 'leaf', 'star' ), $kit_snapshot ), 'Release names not present in Kit CSS are suppressed' );
+check( false === hashe_fa7_filter_names_to_kit( array( 'house' ), array() ), 'Incomplete Kit inventory fails closed' );
 check( false === $pro['hashe-fa7-fasdr']['url'], 'Kit supplies rendering; no bundled Pro assets' );
 check( 'eicon-font-awesome' === $pro['hashe-fa7-fasdr']['labelIcon'], 'Kit category symbols use Elementor eicons' );
 check( 'eicon-font-awesome' === $pro['hashe-fa7-fab']['labelIcon'], 'Brands category symbol uses Elementor eicons' );
@@ -138,7 +143,7 @@ check( 8 === count( $expanded ) && isset( $expanded['hashe-fa7-fal'] ), 'Third s
 foreach ( $five_native as $slug => $native_config ) {
     check( $expanded[$slug] === $native_config, 'Native library preserved through Kit refresh: ' . $slug );
 }
-$GLOBALS['mock_kit_css'] = '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}';
+$GLOBALS['mock_kit_css'] = '@font-face{font-family:"Font Awesome 7 Brands";font-weight:400}.fa-github{--fa:"X"}';
 $GLOBALS['hashe_transients'] = array();
 $reduced = hashe_fa7_register_icon_tabs( $five_native );
 check( 6 === count( $reduced ) && ! isset( $reduced['hashe-fa7-fasdr'] ), 'Removed Kit style disappears after refresh' );
