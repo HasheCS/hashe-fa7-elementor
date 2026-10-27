@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 
 EXPECTED = {"T%02d" % i for i in range(1, 25)}
-STATUSES = {"pending", "pass", "external-limitation"}
+STATUSES = {"pending", "fail", "pass", "external-limitation"}
 
 def evaluate(path):
     obj = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -32,6 +32,8 @@ def evaluate(path):
             raise ValueError("%s has unrecognized status" % ident)
         if status == "pending":
             blocked.append("%s pending" % ident)
+        elif status == "fail":
+            blocked.append("%s failed acceptance" % ident)
         elif status == "pass":
             if not isinstance(evidence, str) or len(evidence.strip()) < 20 or not isinstance(url, str) or not url.startswith("https://"):
                 blocked.append("%s missing independently inspectable pass evidence" % ident)
