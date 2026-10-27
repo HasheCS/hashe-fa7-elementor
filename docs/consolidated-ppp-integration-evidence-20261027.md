@@ -54,3 +54,12 @@ This project forbids a second customer token; don't quietly introduce one, claim
 - Actual Font Awesome GraphQL docs specifically establish that Kit's exact `familyStylesPaginated`, `iconVariantsPaginated`, and per-family `only` fields expose the authoritative subset inventory behind `kits_read`; no equivalently reliable public Kit-ID-only data source has been established for exact multi-style custom subsets. See https://docs.fontawesome.com/apis/graphql/objects and https://docs.fontawesome.com/apis/graphql/auth.
 
 **This remains engineering QA, not completed T01–T24 signoff.**
+
+## Final internal QA artifact and CI evidence
+
+- Reproducible ZIP assembled from integrated source SHA `ff6e8c525d0f7cb6985b02ae47acd13968c06d16`.
+- Header / `readme.txt` identity: **`1.1.0-qa.20261027`**; ZIP has **33** files and one WordPress plugin root.
+- SHA-256: **`c768682d5a795d0e6603ff162e653207ec762918a3677c175f69d0317d9aaa5a`**.
+- `unzip -t`: clean; no `native-pro-compat.css` or bundled Pro WOFF2; internal server QA artifact held outside web root, **not published to the owner or public**.
+- GitHub Actions at the same tested SHA reported **success** for PHP smoke tests, full PPP regression suite, public Kit metadata, both actual Kit browser rendering modes, Free fonts, and native-category callback DOM tests.
+- Not a released ZIP: Font Awesome `kits_read` dependence for exact complex subsets and authenticated Elementor acceptance remain outstanding.
