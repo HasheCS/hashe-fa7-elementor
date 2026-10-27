@@ -326,6 +326,45 @@ function hashe_fa7_release_style_catalog( $version ) {
         return $last_good;
     };
 
+    // Single-flight the first catalog build: Elementor 4.x requests all
+    // categories concurrently. Without an atomic shared lock, a full SVG
+    // Kit can trigger >100 duplicate metadata page downloads.
+    $lock_key = 'hashe_fa7_build_' . md5( $version );
+    $lock_token = uniqid( 'fa7-', true );
+    $lock_owner = add_option(
+        $lock_key,
+        array( 'token' => $lock_token, 'expires' => time() + 45 ),
+        '',
+        'no'
+    );
+    if ( ! $lock_owner ) {
+        $held = get_option( $lock_key );
+        if ( is_array( $held ) && (int) ( $held['expires'] ?? 0 ) < time() ) {
+            delete_option( $lock_key );
+            $lock_owner = add_option(
+                $lock_key,
+                array( 'token' => $lock_token, 'expires' => time() + 45 ),
+                '',
+                'no'
+            );
+        }
+    }
+    if ( ! $lock_owner ) {
+        if ( false !== $last_good ) {
+            return $last_good;
+        }
+        // Bounded wait for the first request to publish its validated catalog.
+        for ( $attempt = 0; $attempt < 50; $attempt++ ) {
+            usleep( 200000 );
+            $ready = get_transient( $key );
+            if ( is_array( $ready ) && ! empty( $ready ) ) {
+                return $ready;
+            }
+        }
+        return false;
+    }
+
+    try {
     $family_response = hashe_fa7_public_get( 'https://api.fontawesome.com/releases/' . $version . '/family-styles', 700000 );
     $family_json = false === $family_response ? null : json_decode( $family_response, true );
     if ( ! is_array( $family_json ) || ! is_array( $family_json['familyStyles'] ?? null ) || ! $family_json['familyStyles'] ) {
@@ -413,6 +452,14 @@ function hashe_fa7_release_style_catalog( $version ) {
     set_transient( $key, $catalog, 30 * DAY_IN_SECONDS );
     set_transient( $check_key, 'fresh', DAY_IN_SECONDS );
     return $catalog;
+    } finally {
+        // Do not release a lock acquired by another process after expiration.
+        $current = get_option( $lock_key );
+        if ( is_array( $current ) &&
+             ( $current['token'] ?? '' ) === $lock_token ) {
+            delete_option( $lock_key );
+        }
+    }
 }
 
 /** Match Kit-approved style with exact public release membership. */
