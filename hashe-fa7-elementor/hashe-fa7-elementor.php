@@ -94,3 +94,70 @@ function hashe_fa7_enqueue_editor_callback_guard() {
     );
 }
 add_action( 'elementor/editor/after_enqueue_scripts', 'hashe_fa7_enqueue_editor_callback_guard', 20 );
+
+/**
+ * Retain Elementor Pro's five native icon tabs when a Kit enables only part
+ * of the Font Awesome family range.
+ *
+ * The plugin does NOT modify the customer's Kit or change the saved icons.
+ * Already-enabled Classic families remain untouched.
+ *
+ * For missing native Solid/Regular, prefer the legally bundled Free font and
+ * use the Kit-selected Sharp Duotone only for Pro-only glyphs not in Free.
+ * A missing Light/Duotone can use Sharp Duotone as an explicitly documented
+ * approximate visual fallback; this cannot reproduce those exact Pro styles.
+ */
+function hashe_fa7_native_compat_rules( $kit ) {
+    if ( ! is_array( $kit ) || 'css' !== ( $kit['method'] ?? '' ) ||
+         ! empty( $kit['error'] ) || ! is_array( $kit['family_styles'] ?? null ) ) {
+        return array();
+    }
+
+    $available = $kit['family_styles'];
+    $has_sharp_duotone = isset( $available['fasdr'] );
+    $fallback_stack = $has_sharp_duotone ? ', "Font Awesome 7 Sharp Duotone"' : '';
+    $rules = array();
+
+    if ( ! isset( $available['fas'] ) ) {
+        $rules['solid'] = '.fas:not(.fa-sharp-duotone):not(.fa-sharp) {' .
+            'font-family:"Hashe Elementor Native Solid"' . $fallback_stack . ' !important;' .
+            'font-weight:900 !important;}';
+    }
+    if ( ! isset( $available['far'] ) ) {
+        $rules['regular'] = '.far:not(.fa-sharp-duotone):not(.fa-sharp) {' .
+            'font-family:"Hashe Elementor Native Regular"' . $fallback_stack . ' !important;' .
+            'font-weight:400 !important;}';
+    }
+    if ( $has_sharp_duotone && ! isset( $available['fal'] ) ) {
+        $rules['light-fallback'] = '.fal:not(.fa-sharp-duotone):not(.fa-sharp) {' .
+            'font-family:"Font Awesome 7 Sharp Duotone" !important;' .
+            'font-weight:400 !important;}';
+    }
+    if ( $has_sharp_duotone && ! isset( $available['fad'] ) ) {
+        $rules['duotone-fallback'] = '.fad:not(.fa-sharp-duotone):not(.fa-sharp) {' .
+            'font-family:"Font Awesome 7 Sharp Duotone" !important;' .
+            'font-weight:400 !important;}';
+    }
+    return $rules;
+}
+
+function hashe_fa7_enqueue_native_compat() {
+    $kit_id = trim( (string) get_option( 'elementor_font_awesome_pro_kit_id', '' ) );
+    if ( ! preg_match( '/^[a-f0-9]{10}$/D', $kit_id ) ) {
+        return;
+    }
+    $kit = hashe_fa7_kit_snapshot( $kit_id );
+    $rules = hashe_fa7_native_compat_rules( $kit );
+    if ( ! $rules ) {
+        return;
+    }
+    wp_enqueue_style(
+        'hashe-fa7-native-compat',
+        plugins_url( 'assets/css/native-pro-compat.css', __FILE__ ),
+        array(),
+        HASHE_FA7_VERSION
+    );
+    wp_add_inline_style( 'hashe-fa7-native-compat', implode( "\n", $rules ) );
+}
+add_action( 'elementor/editor/after_enqueue_styles', 'hashe_fa7_enqueue_native_compat', 25 );
+add_action( 'elementor/frontend/after_enqueue_styles', 'hashe_fa7_enqueue_native_compat', 25 );
