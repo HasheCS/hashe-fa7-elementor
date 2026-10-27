@@ -63,6 +63,11 @@ function plugin_dir_url( $file ) { return 'https://example.test/wp-content/plugi
 function get_option( $key, $default = '' ) { return 'elementor_font_awesome_pro_kit_id' === $key ? $GLOBALS['test_kit_id'] : $default; }
 require_once __DIR__ . '/../hashe-fa7-elementor/hashe-fa7-elementor.php';
 function check( $passed, $message ) { if ( ! $passed ) { fwrite( STDERR, 'FAIL: ' . $message . PHP_EOL ); exit( 1 ); } }
+check( false === hashe_fa7_public_get( 'http://kit.fontawesome.com/23f6a60c28.js' ), 'HTTP Kit requests rejected' );
+check( false === hashe_fa7_public_get( 'https://kit.fontawesome.com.evil.example/23f6a60c28.js' ), 'Untrusted host rejected' );
+check( false === hashe_fa7_public_get( 'https://ka-p.fontawesome.com/assets/23f6a60c28/112386267/kit.css?token=0000000000' ), 'Different Kit token rejected' );
+check( false === hashe_fa7_public_get( 'https://api.fontawesome.com/secret' ), 'Unlisted API path rejected' );
+check( false === hashe_fa7_public_get( 'https://api.fontawesome.com/releases/7.3.1/icons-minimal?page=1&page_size=500&unsafe=1' ), 'Unlisted API query rejected' );
 check( 'elementor/icons_manager/additional_tabs' === $GLOBALS['registered_filter'][0], 'Correct Elementor filter' );
 $existing = array( 'existing-library' => array( 'name' => 'existing-library' ) );
 $free = hashe_fa7_register_icon_tabs( $existing );
