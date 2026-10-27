@@ -285,3 +285,17 @@ check( 2 === count( $pro_plus_tabs ), 'Pro Plus-only Kit creates only the two en
 check( false !== strpos( $pro_plus_tabs['hashe-fa7-fawsb']['label'], 'Whiteboard Semibold' ),
     'Pro Plus category label maps family and semibold style accurately' );
 echo "PASS: Pro Plus family-style discovery is based on hosted Kit fonts, not a generic Pro ID.\\n";
+
+hashe_fa7_unschedule_refresh();
+check( ! wp_next_scheduled( 'hashe_fa7_refresh_catalog' ), 'No cron before activation' );
+hashe_fa7_schedule_refresh();
+$first_scheduled = wp_next_scheduled( 'hashe_fa7_refresh_catalog' );
+check( is_int( $first_scheduled ) && $first_scheduled > time(),
+    'Background catalog refresh scheduled using WordPress hourly interval' );
+hashe_fa7_schedule_refresh();
+check( $first_scheduled === wp_next_scheduled( 'hashe_fa7_refresh_catalog' ),
+    'Repeated WordPress init does not duplicate the scheduled job' );
+hashe_fa7_unschedule_refresh();
+check( ! wp_next_scheduled( 'hashe_fa7_refresh_catalog' ),
+    'Deactivation cleans up the background catalog prewarm event' );
+echo "PASS: Single recurring catalog refresh job and deactivation cleanup.\\n";
