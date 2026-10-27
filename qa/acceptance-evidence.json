@@ -32,8 +32,8 @@
     {
       "id": "T04",
       "status": "pending",
-      "evidence": "",
-      "url": "",
+      "evidence": "2026-10-27 real Amari WordPress CLI editor-mode A/B with Hashe loaded vs --skip-plugins: five native Pro tabs have identical names, prefixes, url=false; Elementor Pro replaces them and enqueues Kit. Kit has only Brands/400 and Sharp Duotone/400. Browser rendering of native glyphs with plugin skipped is not yet proven; leave T04 pending.",
+      "url": "https://github.com/HasheCS/hashe-fa7-elementor/blob/feature/fa7-ppp-integrated-20261027/docs/amari-native-pro-ppp-root-cause-20261027.md",
       "approved_external_limitation": false,
       "signoff": ""
     },
