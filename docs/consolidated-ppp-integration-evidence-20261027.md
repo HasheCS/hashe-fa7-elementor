@@ -63,3 +63,31 @@ This project forbids a second customer token; don't quietly introduce one, claim
 - `unzip -t`: clean; no `native-pro-compat.css` or bundled Pro WOFF2; internal server QA artifact held outside web root, **not published to the owner or public**.
 - GitHub Actions at the same tested SHA reported **success** for PHP smoke tests, full PPP regression suite, public Kit metadata, both actual Kit browser rendering modes, Free fonts, and native-category callback DOM tests.
 - Not a released ZIP: Font Awesome `kits_read` dependence for exact complex subsets and authenticated Elementor acceptance remain outstanding.
+
+## New direct root-cause finding from native Elementor Pro registration (16:xx PKT, 27 Oct 2026)
+
+WP-CLI `Icons_Manager::get_icon_manager_tabs()` with the **same Amari installation** exposes original Elementor Pro 5.15.1 icon catalogs:
+
+| Native library | Original `fetchJson` source | CSS `url` | `enqueue` |
+| --- | --- | --- | --- |
+| fa-regular | `http://dev.sasseagency.com/amari/wp-content/plugins/elementor-pro/assets/lib/font-awesome-pro/regular.js` | false | false |
+| fa-solid | same path, `solid.js` | false | false |
+| fa-brands | same path, `brands.js` | false | false |
+| fa-light | same path, `light.js` | false | false |
+| fa-duotone | same path, `duotone.js` | false | false |
+
+The actual site is served over **HTTPS**. Browsers block insecure cross-scheme `fetch()` requests in the HTTPS editor; this can cause empty original/native categories regardless of the added Kit tabs. Elementor's published troubleshooting documentation confirms HTTP/HTTPS mixed-content causes missing fonts, icons and native assets: https://elementor.com/help/troubleshooting-fonts-not-appearing-on-frontend/.
+
+**Fix integrated but not yet deployed:** a late, narrow WordPress filter maps **only same-host, same-site, HTTP** icon JSON URLs to root-relative paths. Covers both five Pro native catalogs and the Kit's editor AJAX endpoint, including query and nonce, while preserving original labels/values/styles, foreign providers, HTTPS URLs, WordPress database options and Kit ID. PHP unit tests pass. **This is not evidence that native paid Light/Duotone font glyph files exist.**
+
+Separately, the Elementor Pro 5.15.1 native tab configs report `url=false`, `enqueue=false`; the restricted Font Awesome 7 Kit currently serves only Brands and Sharp Duotone Regular. Thus native **catalog names** can load after the mixed-content fix, but Pro 5 native **glyph previews** still require actual licensed Classic font-face resources. The plugin deliberately does not impersonate missing Classic Light/Duotone Pro fonts using Sharp Duotone and does not modify Kit styles. Do not mark native render compatibility accepted without actual browser A/B.
+
+### Previous repeated-Brands root cause now reproduced and corrected
+
+An actual instrumentation run of the mock Elementor 4.3.5 onPickerShow lifecycle showed after the modal's list was canonically restored to seven identities, **late callbacks from a prior modal generation added two stale entries**, producing **nine** and overwriting the first original library. This was a real race in the plugin's earlier fix, not merely a test expectation mismatch. Added a WeakMap generation fence and callback-map clearing on both popup entry points; old async responses are discarded. Previously failing Node regression and real Chromium DOM fixture (including deliberately delayed prior third-party fetch) both now pass. Third-party/virtual tabs are preserved during *current* sessions.
+
+### Additional failure isolation
+
+Hashe AJAX now responds with valid `{icons:[]}` rather than WordPress `{success:false,data:...}` to unsupported subsets, invalidated inventories and metadata failures, so Elementor's unguarded `fetchIcons().then(json=>json.icons)` does not throw. The editor guard handles HTTP failure, invalid JSON and offline fetch for Hashe-only requests while native fetch remains original. Live authenticated WP-CLI endpoint canary on Amari returned exactly 572 Brands and 3,781 Sharp Duotone Regular icon names, plus an explicit empty catalog for unselected Solid, all with the same Kit setting. No private WordPress admin credentials were handled.
+
+**Status remains blocked on a signed-in native picker / glyph acceptance, Pro-only font licensing, and exact By Icon private Kit manifest; the consolidated candidate has not been deployed or promoted to public.**
