@@ -6,11 +6,9 @@
  * The site must have Elementor and Elementor Pro already installed.
  */
 defined( 'ABSPATH' ) || exit;
-if ( function_exists( 'hashe_fa7_register_icon_tabs' ) ) {
-    fwrite( STDERR, "FAIL: run with installed Hashe skipped\n" );
-    exit( 2 );
+if ( ! function_exists( 'hashe_fa7_register_icon_tabs' ) ) {
+    require_once dirname( __DIR__ ) . '/hashe-fa7-elementor/hashe-fa7-elementor.php';
 }
-require_once dirname( __DIR__ ) . '/hashe-fa7-elementor/hashe-fa7-elementor.php';
 \Elementor\Plugin::$instance->editor->set_edit_mode( true );
 $tabs = \Elementor\Icons_Manager::get_icon_manager_tabs();
 $names = array_values( array_map( static function ( $tab ) { return $tab['name']; }, $tabs ) );
