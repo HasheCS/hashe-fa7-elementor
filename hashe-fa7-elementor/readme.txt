@@ -8,7 +8,7 @@ Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Development candidate 1.1.1-rc.2: Adds Font Awesome Free Solid, Regular and Brands with no Kit, and licensed-Kit-dependent dynamic icon catalogs with per-site public API metadata caching.
+Development candidate 1.1.1-rc.3: Adds Font Awesome Free Solid, Regular and Brands with no Kit, and licensed-Kit-dependent dynamic icon catalogs with per-site public API metadata caching.
 
 == Description ==
 
@@ -28,6 +28,12 @@ The native Elementor libraries remain structurally untouched, although native Pr
 4. Confirm native and added libraries and saved frontend icon rendering.
 
 == Changelog ==
+
+= 1.1.1-rc.3 (QA14, pending owner visual acceptance) =
+* For CSS Kits with Sharp styles but missing Classic font families, render Elementor's unchanged native Classic icon definitions using the closest already-enabled Sharp Kit fonts.
+* If no Duotone font is selected, display a mono Sharp fallback instead of two blank glyph boxes.
+* Do not download omitted Pro font styles or supply Pro binaries; full Kit and no-Kit modes remain unchanged.
+* Restore native Free Brands styling on the frontend if omitted by a subsetted Kit.
 
 = 1.1.1-rc.2 (development fix, pending visual acceptance) =
 * Fix Elementor 4.3.5 icon-picker crash caused by numeric-only Font Awesome names being decoded as PHP integers; normalize every icon ID to a string.

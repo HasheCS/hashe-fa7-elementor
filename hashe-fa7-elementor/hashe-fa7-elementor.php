@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Hashe Font Awesome 7 Icon Library for Elementor
  * Description: Enhances Elementor's native icon picker with Font Awesome 7 catalogs, using styles supplied by the configured Font Awesome Kit.
- * Version: 1.1.1-rc.2
+ * Version: 1.1.1-rc.3
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Requires Plugins: elementor
@@ -291,7 +291,7 @@ function hashe_fa7_enqueue_kit_memory_cache() {
         'hashe-fa7-kit-memory-cache',
         plugins_url( 'assets/js/editor-kit-memory.js', __FILE__ ),
         array( 'elementor-editor' ),
-        '1.1.1-rc.2',
+        '1.1.1-rc.3',
         true
     );
 }
@@ -348,3 +348,65 @@ function hashe_fa7_enqueue_no_kit_free_assets() {
 }
 add_action( 'elementor/editor/after_enqueue_styles', 'hashe_fa7_enqueue_no_kit_free_assets', 130 );
 add_action( 'elementor/frontend/after_enqueue_styles', 'hashe_fa7_enqueue_no_kit_free_assets', 130 );
+
+
+/**
+ * QA14 — Font Awesome 7 CSS Kit native preview fallback.
+ *
+ * Elementor Pro's five native icon tabs deliberately stay as defined by
+ * Elementor. If a customer selects only Sharp styles, however, the Kit does
+ * not deliver font faces for Elementor's pre-existing Classic Pro tabs.
+ *
+ * Offer a mono Sharp visual fallback using *only* font faces already selected
+ * and served by the customer's own Kit. No new Pro font request, glyph URL,
+ * third-party file download, or alteration of native icon definitions.
+ *
+ * Native Classic/Duotone names render using the chosen Sharp weight, so this
+ * is explicitly a visual compatibility fallback, not a claim that Classic
+ * or Duotone assets were licensed/enabled in the Kit.
+ */
+function hashe_fa7_enqueue_native_sharp_fallback() {
+    $kit = hashe_fa7_additive_kit();
+    if ( ! is_array( $kit ) || 'css' !== ( $kit['method'] ?? '' ) ) {
+        return;
+    }
+    $enabled = array_fill_keys( (array) ( $kit['styles'] ?? array() ), true );
+    $preferences = array(
+        'fas' => array( 'fass' => 900, 'fasr' => 400, 'fasl' => 300 ),
+        'far' => array( 'fasr' => 400, 'fass' => 900, 'fasl' => 300 ),
+        'fal' => array( 'fasl' => 300, 'fasr' => 400, 'fass' => 900 ),
+        'fad' => array( 'fass' => 900, 'fasr' => 400, 'fasl' => 300 ),
+    );
+    $css = '';
+    foreach ( $preferences as $native => $fallbacks ) {
+        if ( isset( $enabled[ $native ] ) ) {
+            continue; // Never change an actually enabled native family.
+        }
+        foreach ( $fallbacks as $sharp => $weight ) {
+            if ( ! isset( $enabled[ $sharp ] ) ) {
+                continue;
+            }
+            // This family is declared in the customer's official Sharp CSS Kit.
+            $css .= '.' . $native .
+                '{--fa-family:var(--fa-family-sharp,"Font Awesome 7 Sharp");' .
+                '--fa-style:' . (int) $weight . ';}';
+            if ( 'fad' === $native ) {
+                // A mono Sharp font has no licensed second Duotone layer.
+                $css .= '.fad::after{content:none!important;}';
+            }
+            break;
+        }
+    }
+    if ( '' === $css ) {
+        return;
+    }
+    wp_register_style( 'hashe-fa7-native-sharp-compat', false, array(), $kit['version'] );
+    wp_enqueue_style( 'hashe-fa7-native-sharp-compat' );
+    wp_add_inline_style( 'hashe-fa7-native-sharp-compat', $css );
+}
+add_action( 'elementor/editor/after_enqueue_styles', 'hashe_fa7_enqueue_native_sharp_fallback', 140 );
+add_action( 'elementor/frontend/after_enqueue_styles', 'hashe_fa7_enqueue_native_sharp_fallback', 140 );
+
+// Native Brands use Font Awesome Free regardless of CSS Kit selection; the
+// original unmodified Free Brands asset is also safe on the frontend.
+add_action( 'elementor/frontend/after_enqueue_styles', 'hashe_fa7_supply_standard_brands_asset_if_missing', 120 );

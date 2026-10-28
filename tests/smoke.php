@@ -10,6 +10,7 @@ $GLOBALS['transients'] = array();
 $GLOBALS['filters'] = array();
 $GLOBALS['actions'] = array();
 $GLOBALS['enqueued_styles'] = array();
+$GLOBALS['inline_styles'] = array();
 $GLOBALS['enqueued_scripts'] = array();
 $GLOBALS['requests'] = array();
 $GLOBALS['source_version'] = '7.3.1';
@@ -51,7 +52,7 @@ function wp_enqueue_script( $handle, $src, $deps = array(), $ver = '', $foot = f
     $GLOBALS['enqueued_scripts'][$handle] = $src;
 }
 function wp_register_style( $handle, $src, $deps = array(), $ver = '' ) {}
-function wp_add_inline_style( $handle, $css ) {}
+function wp_add_inline_style( $handle, $css ) { $GLOBALS['inline_styles'][$handle] = $css; }
 function wp_enqueue_style( $handle, $src = null, $deps = array(), $ver = '' ) {
     $GLOBALS['enqueued_styles'][$handle] = $src;
 }
@@ -155,6 +156,24 @@ hashe_fa7_supply_standard_brands_asset_if_missing();
 check(isset($GLOBALS['enqueued_styles']['hashe-fa7-standard-brands-asset']) ===
     (in_array($scenario,array('css-small','css-one','css-api-offline','css-stale-cache'),true)),
     'conditional original Brands recovery');
+hashe_fa7_enqueue_native_sharp_fallback();
+$fallback = $GLOBALS['inline_styles']['hashe-fa7-native-sharp-compat'] ?? '';
+if (in_array($scenario,array('css-small','css-one','css-brands','css-api-offline','css-stale-cache','css-new-version'),true)) {
+    check(strpos($fallback,'.fas{')!==false,'Missing Classic Solid fallback to selected Sharp');
+    check(strpos($fallback,'.far{')!==false,'Missing Classic Regular fallback to selected Sharp');
+    check(strpos($fallback,'.fal{')!==false,'Missing Classic Light fallback to selected Sharp');
+    check(strpos($fallback,'.fad{')!==false,'Missing mono Duotone fallback to selected Sharp');
+    check(strpos($fallback,'.fad::after{content:none!important;}')!==false,'Duotone must not render unlicensed second glyph layer');
+    check(strpos($fallback,'@font-face')===false,'No unauthorized fonts introduced');
+    check(strpos($fallback,'http')===false,'No new network font requests');
+    if($scenario==='css-small'){
+        check(strpos($fallback,'.fas{--fa-family:var(--fa-family-sharp,"Font Awesome 7 Sharp");--fa-style:900;}')!==false,'Solid uses enabled Sharp Solid');
+        check(strpos($fallback,'.far{--fa-family:var(--fa-family-sharp,"Font Awesome 7 Sharp");--fa-style:400;}')!==false,'Regular uses enabled Sharp Regular');
+        check(strpos($fallback,'.fal{--fa-family:var(--fa-family-sharp,"Font Awesome 7 Sharp");--fa-style:300;}')!==false,'Light uses enabled Sharp Light');
+    }
+} else {
+    check($fallback==='','No fallback needed for no-Kit, invalid Kit, or full JS Kit');
+}
 hashe_fa7_enqueue_kit_memory_cache();
 check(isset($GLOBALS['enqueued_scripts']['hashe-fa7-kit-memory-cache']) ===
     (in_array($scenario,array('css-small','css-brands','full-js','css-new-version','css-api-offline','css-stale-cache'),true)),

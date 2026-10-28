@@ -4,6 +4,8 @@ An independent GNU GPL WordPress plugin for extending **Elementor's existing Ico
 
 ## v1.1.1 candidate — licensing-conscious architecture
 
+**QA14 / v1.1.1-rc.3:** A small CSS Kit containing only Sharp styles can now render Elementor's unchanged native Classic/Duotone tab icons using already-licensed Sharp fonts. This is a *Sharp visual fallback*, not authentic Classic or two-color Duotone rendering. No omitted Pro fonts are requested. The no-Kit Free and full-Kit modes remain unchanged.
+
 This is a **development candidate pending the Solutions Moco owner’s visual acceptance**, not a released version. The current public stable release remains [v1.1.0](https://github.com/HasheCS/hashe-fa7-elementor/releases/tag/v1.1.0).
 
 ### How it works
