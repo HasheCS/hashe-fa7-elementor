@@ -1,11 +1,12 @@
-name: PHP smoke tests
+name: Release regression tests
 on:
   push:
   pull_request:
 jobs:
-  test:
+  php-regression:
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         php: ['7.4', '8.2', '8.3']
     steps:
@@ -14,12 +15,22 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           tools: none
-      - name: Lint PHP
+      - name: PHP syntax
         run: php -l hashe-fa7-elementor/hashe-fa7-elementor.php
-      - name: Run PHP smoke tests
-        run: php tests/smoke.php
+      - name: Actual Kit + native tab regressions
+        run: |
+          php tests/smoke.php css
+          php tests/smoke.php css-brands
+          php tests/smoke.php full
+          php tests/smoke.php invalid
+  editor-storage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: Check editor callback isolation
-        run: node tests/editor-callback-guard.test.cjs
+      - name: JavaScript syntax
+        run: node --check hashe-fa7-elementor/assets/js/editor-kit-memory.js
+      - name: Scoped Kit storage regression
+        run: node tests/editor-kit-memory.test.cjs

@@ -4,63 +4,57 @@ Tags: elementor, icons, font-awesome, icon-library, fontawesome
 Requires at least: 6.2
 Requires PHP: 7.4
 Requires Plugins: elementor
-Stable tag: 1.0.3
+Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Adds Font Awesome 7 Free Solid, Regular and Brands icons to Elementor's native Icon Library. Optional Pro catalogs list names only and require your own licensed Font Awesome Kit.
+Adds the supported Font Awesome 7.3.1 styles actually available in the Elementor-configured Font Awesome Kit below My Libraries, preserving Elementor's five native libraries.
 
 == Description ==
 
-The plugin adds searchable Font Awesome 7.3.1 Free catalogs, including licensed Free CSS and webfonts, without requiring an account or Kit.
+This plugin extends Elementor's own icon picker. When Elementor Pro has a compatible licensed Font Awesome Kit ID, it detects the supported published styles and registers only those styles as additional libraries below My Libraries.
 
-When an existing Font Awesome Kit ID is configured in Elementor, it also registers 16 additional names-only Pro style catalogs. The Kit must be licensed and configured to serve the selected styles. A Kit ID alone does not grant Pro access. When a Kit is configured, the plugin leaves font loading (including Free styles) to that Kit.
+Elementor's native icon libraries stay above My Libraries. Users can switch Kits and change style selections within the same Kit; the plugin rechecks the published revision when the editor opens.
 
-No Pro glyphs, Pro font files, Pro CSS or private credentials are included. Elementor core files and existing icon libraries are not replaced.
+The full 17-style Font Awesome Pro Kit and small subsetted CSS Kits were tested with Elementor Core 4.3.5, Elementor Pro 4.3.2 and Font Awesome 7.3.1 on a development site. Pro+ exclusive styles and other versions are not verified.
 
-The plugin requires an active Elementor installation. Elementor Pro is not required for standalone Free catalogs. Kit integration availability depends on the Elementor environment.
+No Pro fonts, SVG glyphs, Pro CSS distributions, or Kit credentials are bundled. Actual rendering requires the user's own licensed Kit. Unmodified Font Awesome Free webfonts and CSS carry their original licensing notices.
+
+Without a supported Kit the plugin adds no custom libraries and leaves Elementor alone.
 
 == Installation ==
 
-1. Download the WordPress-installable ZIP attachment from https://github.com/HasheCS/hashe-fa7-elementor/releases/latest . For v1.0.3 the attachment is hashe-fa7-elementor-v1.0.3.zip .
-2. Do NOT install GitHub's "Code > Download ZIP" repository source archive.
-3. In WordPress go to Plugins > Add New Plugin > Upload Plugin, select the release ZIP, then install and activate it.
-4. With Elementor active, open a widget's Icon Library control to select Font Awesome 7 Free icons.
-5. Optionally configure your existing licensed Font Awesome Pro Kit under Elementor > Settings > Integrations if available. The Kit must serve the selected families.
-
-Back up production sites before upgrades and verify on your actual Elementor setup. Pro icon names may appear even when a Kit does not serve their glyphs.
+1. Download hashe-fa7-elementor-v1.1.0.zip from https://github.com/HasheCS/hashe-fa7-elementor/releases/tag/v1.1.0 . Use the versioned release asset, not GitHub's automatic source archive.
+2. Back up your WordPress site. Go to Plugins > Add New Plugin > Upload Plugin, install the ZIP and activate it with Elementor active.
+3. Configure your own compatible Font Awesome Kit ID in Elementor Pro's integration settings.
+4. Reopen the Elementor editor and inspect an Icon Library control. Kit styles appear below My Libraries; native Elementor tabs remain above.
 
 == Frequently Asked Questions ==
 
-= Do Free icons need a Font Awesome account or Kit? =
-No. Without a Kit configured, the bundled Free fonts and CSS load locally.
+= Does the plugin work with any Kit ID? =
+The Kit ID itself is not hardcoded. The plugin detects the actual Kit's supported Font Awesome 7.3.1 styles. Unsupported versions, incomplete Kit metadata, and Pro+ exclusives are not guaranteed.
 
-= Does adding a Kit ID unlock Pro icons? =
-No. The plugin lists names only. Actual Pro rendering depends on a compatible, licensed Kit and its configuration.
+= Does adding a Kit ID grant Pro icon access? =
+No. A Kit must be licensed and authorized separately. The plugin supplies names-only metadata, not Pro assets or entitlements.
 
-= Can I install the repository source ZIP directly? =
-Use the versioned release attachment instead; the source archive is not the packaged WordPress plugin.
+= Why are some native icons missing from a subsetted Kit? =
+A subsetted Kit may omit font families used by Elementor's own interface. The plugin loads the unmodified Free Brands asset as needed and uses the configured Kit for select missing native Pro families.
 
-= What if icons are missing or blank? =
-Check that Elementor is active, check the browser console, and for Kit-enabled installations confirm Kit entitlement, available styles, font loading and domain restrictions. Report reproducible problems at https://github.com/HasheCS/hashe-fa7-elementor/issues and do not publish private credentials.
+= How are large icon libraries handled? =
+A narrowly scoped memory adapter handles only this plugin's added Kit catalogs. Elementor's native icon storage and picker are preserved.
 
 == Changelog ==
 
-= 1.0.3 (recommended release) =
-* Prevent Elementor browser-storage quota errors by holding Hashe icon catalogs in editor memory.
-* Remove only outdated Hashe icon-cache entries; preserve unrelated Elementor storage.
-* Keep per-category JSON fetching and correct concurrent callback association.
-* Automated PHP smoke tests and simulated JavaScript storage/callback regression tests passed; PR #1 records Chromium checks.
-* Amari site owner confirmed the editor works following installation (2026-10-26). Other installations are not exhaustively tested.
+= 1.1.0 =
+* Register only the actual supported Kit styles below My Libraries; preserve all five native Elementor libraries.
+* Detect published changes within the same Kit ID during editor initialization.
+* Handle the verified 17-style Pro Kit without browser localStorage quota errors.
+* Restore native sidebar Brands dependency using unmodified Font Awesome Free CSS, not a custom label override.
+* Include scoped compatibility recovery for missing native Pro font families with the user's licensed Kit.
+* QA11 visually accepted on Solutions Moco 2026-10-28, with release CI checks.
 
-= 1.0.2 (development-only candidate; not separately released on GitHub) =
-* Restored per-category JSON loading and addressed callback races.
-* Required further logged-in Elementor UI verification.
+= 1.0.3 (historical) =
+* Earlier architecture and browser storage fixes. Not the current recommended release.
 
-= 1.0.1 (withdrawn, do not install) =
-* Bulk inline icon catalogs caused an Elementor editor regression.
-* Public release installer removed; Git source history retained.
-
-= 1.0.0 (superseded historical baseline) =
-* Initial Font Awesome 7 Free catalogs and optional Pro names-only integration.
-* Not recommended for new installations; compatibility testing was limited.
+= 1.0.1 (withdrawn) =
+* Caused an Elementor editor regression. Do not install.
