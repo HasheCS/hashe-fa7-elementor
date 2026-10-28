@@ -1,37 +1,53 @@
 # Hashe Font Awesome 7 Icon Library for Elementor
 
-An independent GNU GPL WordPress plugin for extending **Elementor's existing Icon Library** with Font Awesome icons without replacing Elementor Core or Pro definitions.
+GNU GPL WordPress plugin extending **Elementor's Icon Library** with Font Awesome 7 libraries, keeping Elementor's native icon definitions intact.
 
-## v1.1.1 candidate — licensing-conscious architecture
+**Stable v1.1.1 — user accepted on Solutions Moco, October 29, 2026.**
 
-**QA14 / v1.1.1-rc.3:** A small CSS Kit containing only Sharp styles can now render Elementor's unchanged native Classic/Duotone tab icons using already-licensed Sharp fonts. This is a *Sharp visual fallback*, not authentic Classic or two-color Duotone rendering. No omitted Pro fonts are requested. The no-Kit Free and full-Kit modes remain unchanged.
+## Operating modes
 
-This is a **development candidate pending the Solutions Moco owner’s visual acceptance**, not a released version. The current public stable release remains [v1.1.0](https://github.com/HasheCS/hashe-fa7-elementor/releases/tag/v1.1.0).
+### No Kit ID
 
-### How it works
+Adds Font Awesome Free **Solid**, **Regular** and **Brands** under My Libraries. The included Font Awesome Free 7.3.1 CSS, fonts and license notices are the original licensed Free assets. No paid Kit or remote metadata request is required.
 
-- **No Kit ID configured:** Three additional libraries—Font Awesome Free Solid, Regular and Brands—appear under **My Libraries**. All fonts and stylesheets come from the included original Font Awesome **Free 7.3.1** files, with applicable license notices. No account, network metadata call or paid entitlement is required.
-- **Supported licensed Kit configured:** Reads the customer's Kit ID from Elementor's normal integration setting. Determines the Kit's actual selected CSS font styles, or strictly verifies the full-Pro JavaScript startup. Only verified supported styles become extra libraries. No Kit ID is hardcoded.
-- **Version-aware names:** Gets names and Free/Pro family-style metadata from the [official Font Awesome public release-specific REST API](https://docs.fontawesome.com/apis/rest/). Version 7.x with supported prefixes is recognized; an unknown major version fails safely. No copied Pro name datasets are shipped.
-- **Caching:** Downloads public metadata only on a cold editor load or refresh, then caches the successful result on that WordPress site for seven days; a validated last-known-successful copy can be reused during an API outage for up to 30 days. Fresh first-run download may take several seconds. It does not run on every frontend page request.
-- **Rendering and licensing:** Free mode uses the original bundled Font Awesome Free assets. Paid Kit mode delegates icons/fonts entirely to the **customer's configured Kit**. It never ships paid fonts, paid SVGs or paid CSS/JS, does not use developer credentials, and never constructs direct paid font-shard requests for unselected styles.
-- **Native Elementor libraries:** The plugin never filters or replaces the five native Core/Pro tab definitions. Under a subsetted Kit, however, icons in native Elementor Pro tabs for styles **omitted from that Kit** may be unavailable because Elementor Pro itself suppresses its default native font loading. We do not bypass Kit selections to fill these omissions. This is a known visual regression risk requiring explicit review in the candidate.
-- **Performance:** The original Kit-only editor-memory adapter prevents localStorage quota errors with a full 17-style Kit. It does not modify native Elementor caches.
+### Customer's own Font Awesome Kit
 
-### Requirements and scope
+Reads the Kit ID from Elementor Pro's existing integration option and checks styles the Kit actually serves. Selected-style CSS Kits yield their included styles; supported full Pro JS Kits yield up to 17 standard styles. No Kit ID is hardcoded in the distributed plugin.
 
-- WordPress 6.2+, PHP 7.4+, Elementor active.
-- Verified earlier: Elementor 4.3.5, Elementor Pro 4.3.2, Font Awesome 7.3.1 on Solutions Moco.
-- Pro+ exclusive styles, arbitrary subsetted SVG+JS Kits, all future major versions and clean-install browser QA are **not verified**. Do not advertise them as tested.
-- If an invalid Kit ID is configured, the plugin does not fabricate Kit libraries or inject Free CSS into Elementor Pro's own Kit integration. Clear the Kit ID to use no-Kit Free mode.
-- Metadata is informational, not a license. Kit availability and the customer's subscription determine usable styles.
+Icon names and Free/Pro style availability come from Font Awesome's release-specific **public metadata REST API**, not bundled Pro fonts or datasets. WordPress caches valid metadata seven days, with up to 30 days of last-successful fallback for API outages. Kit selection changes are checked as the editor opens.
 
-### Development and release validation
+**The Kit remains the license and glyph-delivery boundary.** No paid Pro fonts, SVGs, paid stylesheets, bulk Pro metadata catalogs, or direct font-shard recovery requests for styles omitted from a user's Kit are bundled or used. Version awareness covers known supported Font Awesome 7.x style prefixes, not all future versions or Pro+ exclusive styles.
 
-The candidate must pass PHP and JavaScript regressions, public metadata API/caching tests, small/full/no Kit tests, native icon browser inspection, frontend saved-icon rendering, and explicit owner visual acceptance before any merge, tag or public release.
+### Native Elementor compatibility
 
-### Third-party licensing
+The original Elementor native library definitions remain untouched. If a CSS Kit enables only **Sharp** styles, native Classic/Pro previews can use the closest **already-enabled Sharp font**, without obtaining unavailable fonts:
 
-Own integration code: GPL-2.0-or-later. Font Awesome Free assets: original MIT, SIL OFL and CC BY terms as applicable; see [bundled notice](hashe-fa7-elementor/FONT-AWESOME-LICENSE.txt). Font Awesome and Elementor are third-party trademarks; the plugin is not endorsed by either company.
+- Solid → selected Sharp Solid or closest available Sharp.
+- Regular → selected Sharp Regular or closest available Sharp.
+- Light → selected Sharp Light or closest available Sharp.
+- Duotone → a **single-color Sharp substitute**, not genuine layered Duotone.
+- Native Brands → the included Font Awesome Free Brands CSS when omitted by the Kit.
 
-**Do not install GitHub's repository source-code ZIP as a WordPress plugin.** Once a release is approved, use its separate installable plugin ZIP asset.
+When the matching Classic or Duotone font is actually enabled, no Sharp fallback is added for that style. When no Kit is configured, Free mode does not apply a Sharp fallback. The Kit-only in-memory catalog adapter protects against browser localStorage exhaustion on the 17-style Kit, without changing native Elementor persistence.
+
+## Installation
+
+1. Back up the WordPress site and its existing plugin installation.
+2. Download the **separate installable plugin ZIP asset** from the v1.1.1 GitHub release, not GitHub's automatic source-code ZIP.
+3. Go to WordPress **Plugins → Add New Plugin → Upload Plugin**, then install/replace and activate.
+4. For Free mode, leave the Elementor Pro Font Awesome Kit ID empty. For licensed styles, configure your own authorized Kit.
+5. Reopen/hard-refresh the Elementor editor after changes and check the icon picker and saved frontend rendering.
+
+## Verification
+
+- Visually accepted by the user on Solutions Moco: **no Kit, full Kit, small Sharp Kit** (October 29, 2026).
+- Accepted QA14 code commit: f90887482c9dc9fa9ae1861c0d2d2524772193e1.
+- Automated PHP 7.4, 8.2, 8.3 and JS CI; nine registration/cache/entitlement scenarios; real public Font Awesome API pagination test.
+- The stable version bump changes documentation/version markers, not the accepted QA14 functionality.
+- No separate clean-site install or Pro+ exclusive licensed-style test is claimed.
+
+## Licenses and trademarks
+
+Our integration code: GPL-2.0-or-later. Original Font Awesome Free fonts, icons and CSS retain their applicable SIL OFL 1.1, CC BY 4.0, and MIT terms, described in the bundled [Font Awesome license notice](hashe-fa7-elementor/FONT-AWESOME-LICENSE.txt).
+
+Font Awesome and Elementor are third-party trademarks. No endorsement or special licensing permission is implied.

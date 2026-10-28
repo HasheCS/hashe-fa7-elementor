@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Hashe Font Awesome 7 Icon Library for Elementor
  * Description: Enhances Elementor's native icon picker with Font Awesome 7 catalogs, using styles supplied by the configured Font Awesome Kit.
- * Version: 1.1.1-rc.3
+ * Version: 1.1.1
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Requires Plugins: elementor
@@ -291,7 +291,7 @@ function hashe_fa7_enqueue_kit_memory_cache() {
         'hashe-fa7-kit-memory-cache',
         plugins_url( 'assets/js/editor-kit-memory.js', __FILE__ ),
         array( 'elementor-editor' ),
-        '1.1.1-rc.3',
+        '1.1.1',
         true
     );
 }
