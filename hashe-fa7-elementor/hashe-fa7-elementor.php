@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Hashe Font Awesome 7 Icon Library for Elementor
  * Description: Enhances Elementor's native icon picker with Font Awesome 7 catalogs, using styles supplied by the configured Font Awesome Kit.
- * Version: 1.1.0
+ * Version: 1.1.1-rc.1
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Requires Plugins: elementor
@@ -12,6 +12,7 @@
  * Text Domain: hashe-fa7-elementor
  */
 defined( 'ABSPATH' ) || exit;
+require_once __DIR__ . '/includes/catalog-provider.php';
 
 /**
  * Register Kit-owned tabs through Elementor's additional_tabs API.
@@ -90,10 +91,9 @@ function hashe_fa7_additive_kit() {
     }
 
     $version = (string) ( $config['version'] ?? '' );
-    $manifest = json_decode( (string) file_get_contents( __DIR__ . '/data/manifest.json' ), true );
-    // A different Kit release needs matching metadata, not misleading older names.
-    if ( ! preg_match( '/^7\.[0-9]+\.[0-9]+$/D', $version ) ||
-         ! is_array( $manifest ) || $version !== ( $manifest['version'] ?? '' ) ) {
+    // Kit IDs are user-owned; the metadata API is selected by this Kit's
+    // published release version, never a plugin-bundled 7.3.1 manifest.
+    if ( ! hashe_fa7_api_supported_version( $version ) ) {
         return false;
     }
 
@@ -196,12 +196,44 @@ function hashe_fa7_register_kit_additional_tabs( $tabs ) {
     if ( ! is_array( $tabs ) ) {
         return $tabs;
     }
+    $kit_id = trim( (string) get_option( 'elementor_font_awesome_pro_kit_id', '' ) );
+    if ( '' === $kit_id ) {
+        // Elementor's normal Free native libraries are untouched. Add our
+        // separate, licensed Font Awesome 7.3.1 Free icon catalogs below them.
+        $free = hashe_fa7_free_catalogs();
+        foreach ( array(
+            'fas' => 'Solid', 'far' => 'Regular', 'fab' => 'Brands',
+        ) as $style => $name ) {
+            $id = 'hashe-fa7-free-' . $style;
+            if ( isset( $tabs[ $id ] ) || empty( $free[ $style ] ) ) {
+                continue;
+            }
+            $tabs[ $id ] = array(
+                'name'          => $id,
+                'label'         => 'Font Awesome Free - ' . $name,
+                'labelIcon'     => $style . ' fa-flag',
+                'url'           => false,
+                'enqueue'       => false,
+                'prefix'        => 'fa-',
+                'displayPrefix' => $style,
+                'ver'           => '7.3.1',
+                'icons'         => $free[ $style ],
+                'native'        => false,
+            );
+        }
+        return $tabs;
+    }
     $kit = hashe_fa7_additive_kit();
     if ( ! $kit || empty( $kit['styles'] ) ) {
+        // Configured but invalid/unreachable Kits are not secretly treated
+        // as Free: Elementor Pro still owns its configured Kit integration.
         return $tabs;
     }
     $specs = hashe_fa7_additive_specs();
-    static $catalogs = array();
+    $names = hashe_fa7_public_catalogs( $kit['version'] );
+    if ( ! $names ) {
+        return $tabs; // No invented Pro libraries if API/cache unavailable.
+    }
     foreach ( $kit['styles'] as $style ) {
         if ( ! isset( $specs[ $style ] ) ) {
             continue;
@@ -210,17 +242,13 @@ function hashe_fa7_register_kit_additional_tabs( $tabs ) {
         if ( isset( $tabs[ $id ] ) ) {
             continue;
         }
-        if ( ! array_key_exists( $style, $catalogs ) ) {
-            $catalogs[ $style ] = array();
-            $path = __DIR__ . '/data/' . $style . '.json';
-            if ( is_readable( $path ) ) {
-                $data = json_decode( (string) file_get_contents( $path ), true );
-                if ( is_array( $data ) && ! empty( $data['icons'] ) && is_array( $data['icons'] ) ) {
-                    $catalogs[ $style ] = $data['icons'];
-                }
-            }
-        }
-        if ( ! $catalogs[ $style ] ) {
+        // License-grouped API metadata describes names, not entitlement;
+        // the published Kit CSS/JS remains authoritative for style access.
+        $icons = array_values( array_unique( array_merge(
+            $names['free'][ $style ] ?? array(),
+            $names['pro'][ $style ] ?? array()
+        ) ) );
+        if ( ! $icons ) {
             continue;
         }
         $tabs[ $id ] = array(
@@ -232,7 +260,7 @@ function hashe_fa7_register_kit_additional_tabs( $tabs ) {
             'prefix'        => 'fa-',
             'displayPrefix' => $style,
             'ver'           => $kit['version'],
-            'icons'         => $catalogs[ $style ],
+            'icons'         => $icons,
             'native'        => false,
         );
     }
@@ -240,120 +268,10 @@ function hashe_fa7_register_kit_additional_tabs( $tabs ) {
 }
 add_filter( 'elementor/icons_manager/additional_tabs', 'hashe_fa7_register_kit_additional_tabs' );
 /**
- * Restore missing native Elementor Pro font families while preserving the
- * original five Elementor library definitions and their FA5 icon names.
- *
- * The configured Font Awesome 7.3.1 Pro CSS Kit may contain only user-selected
- * styles. This adds only the missing native font families, loaded directly
- * from official Font Awesome CDN under the SAME configured Kit token.
- *
- * The bundled file is a codepoint-to-shard mapping, NOT Pro font assets.
- * Exact unicode ranges were tested against official WOFF2 font resources,
- * preventing a heavy full-library font fetch.
+ * No direct Pro font-shard recovery: Font Awesome Kit style selection is the
+ * entitlement boundary. Native Elementor definitions are preserved as-is;
+ * font delivery is delegated to Elementor and the customer's licensed Kit.
  */
-function hashe_fa7_native_pro_font_fallback() {
-    $kit = hashe_fa7_additive_kit();
-    if ( ! $kit || 'css' !== $kit['method'] || '7.3.1' !== $kit['version'] ) {
-        return;
-    }
-    $path = __DIR__ . '/data/native-pro-unicode.json';
-    if ( ! is_readable( $path ) ) {
-        return;
-    }
-    $manifest = json_decode( (string) file_get_contents( $path ), true );
-    if (
-        ! is_array( $manifest ) ||
-        $kit['version'] !== ( $manifest['version'] ?? '' ) ||
-        ! is_array( $manifest['native'] ?? null )
-    ) {
-        return;
-    }
-    $css = '';
-    foreach ( $manifest['native'] as $prefix => $spec ) {
-        if ( in_array( $prefix, (array) $kit['styles'], true ) ) {
-            continue;
-        }
-        $expected = array(
-            'fas' => 'solid-900',
-            'far' => 'regular-400',
-            'fal' => 'light-300',
-            'fad' => 'duotone-900',
-        );
-        if (
-            ! isset( $expected[ $prefix ] ) ||
-            $expected[ $prefix ] !== ( $spec['asset'] ?? '' ) ||
-            ! is_array( $spec['coverage'] ?? null )
-        ) {
-            continue;
-        }
-        $family = 'Hashe FA7 Native ' . $prefix;
-        $weight = (int) ( $spec['weight'] ?? 0 );
-        if ( ! in_array( $weight, array( 300, 400, 900 ), true ) ) {
-            continue;
-        }
-        $shard_count = count( $spec['coverage'] );
-        if ( $shard_count < 1 || $shard_count > 40 ) {
-            continue;
-        }
-        foreach ( $spec['coverage'] as $index => $codepoints ) {
-            if ( ! is_array( $codepoints ) || ! $codepoints ) {
-                continue;
-            }
-            $codepoints = array_unique( array_map( 'intval', $codepoints ) );
-            sort( $codepoints, SORT_NUMERIC );
-            // Compact adjacent glyph ranges to reduce CSS and match exact shards.
-            $ranges = array();
-            $start = null;
-            $last = null;
-            foreach ( $codepoints as $point ) {
-                if ( $point < 33 || $point > 1114111 ) {
-                    continue;
-                }
-                if ( null === $start ) {
-                    $start = $point;
-                    $last = $point;
-                } elseif ( $point === $last + 1 ) {
-                    $last = $point;
-                } else {
-                    $ranges[] = 'U+' . strtoupper( dechex( $start ) ) .
-                        ( $start === $last ? '' : '-' . strtoupper( dechex( $last ) ) );
-                    $start = $point;
-                    $last = $point;
-                }
-            }
-            if ( null !== $start ) {
-                $ranges[] = 'U+' . strtoupper( dechex( $start ) ) .
-                    ( $start === $last ? '' : '-' . strtoupper( dechex( $last ) ) );
-            }
-            if ( ! $ranges ) {
-                continue;
-            }
-            $url = 'https://ka-p.fontawesome.com/releases/v7.3.1/webfonts/pro-fa-' .
-                $spec['asset'] . '-' . (int) $index .
-                '.woff2?token=' . rawurlencode( $kit['id'] );
-            $css .= '@font-face{font-family:"' . $family . '";font-style:normal;' .
-                'font-weight:' . $weight . ';font-display:block;' .
-                'src:url("' . esc_url_raw( $url ) . '") format("woff2");' .
-                'unicode-range:' . implode( ',', $ranges ) . '}';
-        }
-        $css .= '.' . $prefix . '{--fa-family:"' . $family . '";--fa-style:' . $weight . '}';
-        if ( 'fad' === $prefix ) {
-            $css .= '.fad{position:relative;letter-spacing:normal}' .
-                '.fad:before{position:absolute;color:var(--fa-primary-color,currentColor);' .
-                'opacity:var(--fa-primary-opacity,1)}' .
-                '.fad:after{color:var(--fa-secondary-color,currentColor);' .
-                'opacity:var(--fa-secondary-opacity,.4);font-feature-settings:"ss01"}';
-        }
-    }
-    if ( '' === $css ) {
-        return;
-    }
-    wp_register_style( 'hashe-fa7-native-pro-recovery', false, array(), $kit['version'] );
-    wp_enqueue_style( 'hashe-fa7-native-pro-recovery' );
-    wp_add_inline_style( 'hashe-fa7-native-pro-recovery', $css );
-}
-add_action( 'elementor/editor/after_enqueue_styles', 'hashe_fa7_native_pro_font_fallback', 100 );
-add_action( 'elementor/frontend/after_enqueue_styles', 'hashe_fa7_native_pro_font_fallback', 100 );
 
 /**
  * Full-library Kits exceed Elementor 4.3.5's browser localStorage quota when
@@ -373,7 +291,7 @@ function hashe_fa7_enqueue_kit_memory_cache() {
         'hashe-fa7-kit-memory-cache',
         plugins_url( 'assets/js/editor-kit-memory.js', __FILE__ ),
         array( 'elementor-editor' ),
-        '1.1.0',
+        '1.1.1-rc.1',
         true
     );
 }
@@ -407,3 +325,26 @@ function hashe_fa7_supply_standard_brands_asset_if_missing() {
     );
 }
 add_action( 'elementor/editor/after_enqueue_styles', 'hashe_fa7_supply_standard_brands_asset_if_missing', 120 );
+
+/**
+ * No-Kit: use licensed, locally bundled Font Awesome Free 7.3.1 styles/fonts.
+ * Elementor Pro's existing integration owns font loading when any Kit ID is
+ * present; we never inject Free CSS that could masquerade as Kit entitlement.
+ */
+function hashe_fa7_enqueue_no_kit_free_assets() {
+    if ( '' !== trim( (string) get_option( 'elementor_font_awesome_pro_kit_id', '' ) ) ) {
+        return;
+    }
+    $base = plugins_url( 'assets/css/', __FILE__ );
+    wp_enqueue_style( 'hashe-fa7-free-core', $base . 'fontawesome.min.css', array(), '7.3.1' );
+    foreach ( array( 'solid', 'regular', 'brands' ) as $family ) {
+        wp_enqueue_style(
+            'hashe-fa7-free-' . $family,
+            $base . $family . '.min.css',
+            array( 'hashe-fa7-free-core' ),
+            '7.3.1'
+        );
+    }
+}
+add_action( 'elementor/editor/after_enqueue_styles', 'hashe_fa7_enqueue_no_kit_free_assets', 130 );
+add_action( 'elementor/frontend/after_enqueue_styles', 'hashe_fa7_enqueue_no_kit_free_assets', 130 );

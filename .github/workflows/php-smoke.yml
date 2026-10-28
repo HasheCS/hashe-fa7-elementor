@@ -1,4 +1,4 @@
-name: Release regression tests
+name: Release compliance and regression tests
 on:
   push:
   pull_request:
@@ -15,14 +15,15 @@ jobs:
         with:
           php-version: ${{ matrix.php }}
           tools: none
-      - name: PHP syntax
-        run: php -l hashe-fa7-elementor/hashe-fa7-elementor.php
-      - name: Actual Kit + native tab regressions
+      - name: PHP lint
         run: |
-          php tests/smoke.php css
-          php tests/smoke.php css-brands
-          php tests/smoke.php full
-          php tests/smoke.php invalid
+          php -l hashe-fa7-elementor/hashe-fa7-elementor.php
+          php -l hashe-fa7-elementor/includes/catalog-provider.php
+      - name: Test Free, CSS Kits, full JS Kits, version, API fallback and license gates
+        run: |
+          for scenario in no-kit invalid css-small css-brands css-one full-js css-new-version css-api-offline css-stale-cache; do
+            php tests/smoke.php "$scenario"
+          done
   editor-storage:
     runs-on: ubuntu-latest
     steps:
@@ -30,7 +31,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: JavaScript syntax
-        run: node --check hashe-fa7-elementor/assets/js/editor-kit-memory.js
-      - name: Scoped Kit storage regression
-        run: node tests/editor-kit-memory.test.cjs
+      - name: Kit memory regression
+        run: |
+          node --check hashe-fa7-elementor/assets/js/editor-kit-memory.js
+          node tests/editor-kit-memory.test.cjs
