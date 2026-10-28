@@ -47,7 +47,7 @@ function hashe_fa7_public_catalogs( $version ) {
     if ( ! hashe_fa7_api_supported_version( $version ) ) {
         return false;
     }
-    $prefix = 'hashe_fa7_metadata_v2_' . md5( $version );
+    $prefix = 'hashe_fa7_metadata_v3_' . md5( $version );
     $fresh = get_transient( $prefix );
     if ( hashe_fa7_valid_catalog_cache( $fresh, $version ) ) {
         return $fresh['catalogs'];
@@ -164,7 +164,10 @@ function hashe_fa7_download_public_catalogs( $version ) {
     }
     foreach ( $result as $license => $by_style ) {
         foreach ( $by_style as $style => $names ) {
-            $result[ $license ][ $style ] = array_keys( $names );
+            // PHP casts purely numeric string array keys to integers.
+            // Elementor 4.3.5 calls iconName.trim(), so a single numeric
+            // ID ("0" to "9") otherwise crashes the entire icon picker.
+            $result[ $license ][ $style ] = array_map( 'strval', array_keys( $names ) );
             sort( $result[ $license ][ $style ], SORT_STRING );
         }
     }

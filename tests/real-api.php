@@ -28,6 +28,8 @@ if(!$names){fwrite(STDERR,"API TEST FAILED\n");exit(1);}
 foreach(array('fas','far','fab','fass','fasr','fasl','fad') as $p){
     printf("%s free=%d pro=%d\n",$p,count($names['free'][$p]),count($names['pro'][$p]));
 }
+foreach($names['pro'] as $style=>$catalog){foreach($catalog as $name){if(!is_string($name)){fwrite(STDERR,'BAD NUMERIC ICON '.$style.PHP_EOL);exit(3);}}}
+if(!in_array('0',$names['pro']['fass'],true)){fwrite(STDERR,'NUMERIC ICON 0 LOST'.PHP_EOL);exit(4);}
 if($GLOBALS['requests']<2 || count($names['pro']['fass'])<1000 || count($names['free']['fab'])<100){
     fwrite(STDERR,"BAD ACTUAL DATA\n");exit(2);
 }

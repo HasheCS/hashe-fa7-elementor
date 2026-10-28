@@ -92,6 +92,10 @@ function wp_remote_get( $url, $args = array() ) {
             array('flag',array('fab'),array('fab','far','fas')),
             array('address-book',array('far'),array('far','fas','fal')),
             array('arrow',array(),array_keys(hashe_fa7_additive_specs())),
+            array('0',array('fas'),array_keys(hashe_fa7_additive_specs())),
+            array('1',array('far'),array_keys(hashe_fa7_additive_specs())),
+            array('9',array('fab'),array_keys(hashe_fa7_additive_specs())),
+            array('42',array('fab'),array_keys(hashe_fa7_additive_specs())),
         ) as $record ) {
             $variant = array();
             foreach ( array('free'=>$record[1],'pro'=>$record[2]) as $license=>$list ) {
@@ -100,7 +104,7 @@ function wp_remote_get( $url, $args = array() ) {
             $all[] = array( 'id'=>$record[0], 'familyStylesByLicense'=>$variant );
         }
         return array( 'code'=>200, 'body'=>json_encode( array(
-            'icons'=>$all, 'page'=>1, 'pageSize'=>500, 'totalIconCount'=>4, 'totalPageCount'=>1,
+            'icons'=>$all, 'page'=>1, 'pageSize'=>500, 'totalIconCount'=>8, 'totalPageCount'=>1,
         ) ) );
     }
     return array( 'code'=>404, 'body'=>'' );
@@ -113,10 +117,10 @@ foreach(array('fa-regular','fa-solid','fa-brands','fa-light','fa-duotone') as $n
 }
 $before=json_encode($native);
 if ('css-stale-cache' === $scenario) {
-    $key='hashe_fa7_metadata_v2_' . md5($GLOBALS['source_version']) . '_last';
+    $key='hashe_fa7_metadata_v3_' . md5($GLOBALS['source_version']) . '_last';
     $data=array('version'=>$GLOBALS['source_version'],'updated'=>time(),'catalogs'=>array(
-        'free'=>array('fass'=>array('house'),'fasr'=>array('house'),'fasl'=>array('house')),
-        'pro'=>array('fass'=>array('arrow'),'fasr'=>array('arrow'),'fasl'=>array('arrow'))
+        'free'=>array('fass'=>array('house','0'),'fasr'=>array('house','0'),'fasl'=>array('house','0')),
+        'pro'=>array('fass'=>array('arrow','0'),'fasr'=>array('arrow','0'),'fasl'=>array('arrow','0'))
     ));
     update_option($key,$data,false);
 }
@@ -131,8 +135,17 @@ check( json_encode($native)===$before, 'native definitions are byte-identical' )
 foreach($native as $name=>$config){check($tabs[$name]===$config,'native entry unmodified '.$name);}
 $kit=0;$free=0;
 foreach($tabs as $name=>$data){
-    if(strpos($name,'hashe-fa7-kit-')===0){$kit++;check(count($data['icons'])>0,'valid Kit icons present');}
-    if(strpos($name,'hashe-fa7-free-')===0){$free++;check(count($data['icons'])>0,'Free icons present');}
+    if(strpos($name,'hashe-fa7-kit-')===0){
+        $kit++;
+        check(count($data['icons'])>0,'valid Kit icons present');
+        foreach($data['icons'] as $iconName){check(is_string($iconName),'all Kit icon IDs must be strings: '.gettype($iconName));}
+        check(in_array('0',$data['icons'],true),'numeric Font Awesome IDs preserve string type');
+    }
+    if(strpos($name,'hashe-fa7-free-')===0){
+        $free++;
+        check(count($data['icons'])>0,'Free icons present');
+        if('hashe-fa7-free-fab'===$name){check($data['labelIcon']==='fab fa-font-awesome-flag','Brands navigation glyph is valid');}
+    }
 }
 check($free === ('no-kit'===$scenario ? 3 : 0),'Free mode exclusive to no Kit');
 check($kit === ('no-kit'===$scenario ? 0 : $expected),'Kit metadata correct');

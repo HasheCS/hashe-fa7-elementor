@@ -8,7 +8,7 @@ Stable tag: 1.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Development candidate 1.1.1-rc.1: Adds Font Awesome Free Solid, Regular and Brands with no Kit, and licensed-Kit-dependent dynamic icon catalogs with per-site public API metadata caching.
+Development candidate 1.1.1-rc.2: Adds Font Awesome Free Solid, Regular and Brands with no Kit, and licensed-Kit-dependent dynamic icon catalogs with per-site public API metadata caching.
 
 == Description ==
 
@@ -28,6 +28,11 @@ The native Elementor libraries remain structurally untouched, although native Pr
 4. Confirm native and added libraries and saved frontend icon rendering.
 
 == Changelog ==
+
+= 1.1.1-rc.2 (development fix, pending visual acceptance) =
+* Fix Elementor 4.3.5 icon-picker crash caused by numeric-only Font Awesome names being decoded as PHP integers; normalize every icon ID to a string.
+* Invalidate prior cached metadata using a new cache revision.
+* Give the no-Kit and Kit Brands libraries a valid Font Awesome Brands sidebar icon.
 
 = 1.1.1-rc.1 (development candidate; no public release yet) =
 * Add licensed Font Awesome Free catalogs and local CSS/webfonts in no-Kit mode.
