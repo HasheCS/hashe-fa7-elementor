@@ -4,51 +4,51 @@ Tags: elementor, icons, font-awesome, icon-library
 Requires at least: 6.2
 Requires PHP: 7.4
 Requires Plugins: elementor
-Stable tag: 1.1.1
+Stable tag: 1.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Extend Elementor's native icon picker using Font Awesome Free or your own licensed Font Awesome Kit.
+Extend Elementor's Icon Library with Font Awesome 7 Free, Pro, and Pro Plus styles available through your own Kit.
 
 == Description ==
 
-This GNU GPL integration adds Font Awesome 7 libraries to Elementor without changing Elementor's native library definitions.
+This plugin adds Kit-dependent Font Awesome 7 icon libraries to Elementor. Font Awesome's official public release metadata supplies icon names and style families dynamically. The customer-owned Kit remains the authority for paid styles and font delivery.
 
-* With no Kit ID: Font Awesome Free 7.3.1 Solid, Regular and Brands, using the bundled original licensed Free assets.
-* With a user-owned Kit ID: detect the published styles, then retrieve icon names from Font Awesome's version-specific public REST metadata API.
-* Cache public metadata on the WordPress site; reuse last-known-good results during temporary API failures.
-* Use existing enabled Sharp fonts as a visual fallback for native Classic/Duotone previews if a subsetted Kit omits the corresponding Classic fonts. Duotone appears as single-color Sharp, not genuine layered Duotone.
-* Full 17-style Kit uses a narrowly scoped memory adapter against localStorage quota errors.
-* No paid fonts/SVGs, copied Pro catalogs, or requests to omitted Pro font shards.
+* No Kit: Elementor's three native Free libraries remain available; the plugin adds separate Font Awesome 7 Free Solid, Regular, and Brands libraries under My Libraries.
+* Selected-style Kit: Elementor's three native Free libraries remain. Classic Light and Duotone native Pro entries are shown only if those styles are published in the Kit. Other selected style families appear under My Libraries.
+* Whole-library Kit: Native Classic Solid, Regular, Light, Duotone Solid, and Brands stay in Elementor's native section; other available styles appear under My Libraries.
+* When a selective Kit omits a native Free family, Elementor's bundled original Free font assets support it without downloading unselected Pro fonts.
+* The plugin rechecks a Kit's published revision in the editor and caches the official release catalog locally. It does not rewrite saved icon references or Elementor core/plugin files.
 
-The customer's Font Awesome Kit supplies paid glyphs and determines usable styles. Known Font Awesome 7.x style prefixes are supported; Pro+ exclusive styles and arbitrary future major versions are not verified.
+No paid font binaries, SVG glyphs, licensed Pro stylesheets, or copied Pro icon catalog data are included. Elementor and Font Awesome are third-party trademarks; no endorsement is claimed.
 
 == Installation ==
 
-1. Back up your WordPress site. Download the approved installable ZIP attached to the v1.1.1 release, not GitHub's source-code ZIP.
-2. Open Plugins > Add New Plugin > Upload Plugin; install, replace if upgrading, then activate.
-3. Leave the Kit ID empty in Elementor Pro integrations for Free mode, or configure your own licensed Kit.
-4. Reopen Elementor and check the picker and existing saved icons after changing a Kit.
+1. Back up the WordPress site and current plugin.
+2. Download the installable plugin ZIP asset from the v1.1.2 GitHub release (not GitHub's automatic repository source ZIP).
+3. In WordPress select Plugins > Add New > Upload Plugin, install/replace, and activate.
+4. Leave Elementor Pro's Font Awesome Kit ID empty for Free mode, or provide your own licensed Font Awesome Kit ID.
+5. Reopen Elementor after Kit changes. Verify native and additional libraries, then save and reload an icon widget.
 
 == Frequently Asked Questions ==
 
-= Does this plugin include Pro fonts? =
-No. Only the user's licensed Kit supplies paid glyphs. The included Free fonts retain Font Awesome's original Free licenses.
+= Does the plugin include Pro Plus fonts? =
+No. Paid glyphs are served by the customer's licensed Font Awesome Kit. The public release metadata provides names and available families.
 
-= What if my Kit includes only Sharp styles? =
-The native Classic library definitions remain unchanged. Their icon previews can use the closest already-enabled Sharp font, and native Duotone is rendered as one color.
+= Why do native Elementor Free libraries appear with a Pro Plus-only Kit? =
+Regular, Solid, and Brands are Elementor's native baseline. When a selected-style Kit omits those Pro families, the plugin preserves Elementor's original Free library definitions and fonts.
 
 == Changelog ==
 
-= 1.1.1 =
-* Visually accepted by the user on Solutions Moco for no Kit, full Kit and small Kit.
-* Kit-dependent libraries and version-scoped official metadata API with site-local caching.
-* Three Free-only libraries and bundled licensed Free assets when no Kit is set.
-* Fix numeric icon names causing Elementor trim exceptions.
-* Correct Brands navigation icon.
-* Native Classic and Duotone visual fallback using only selected Sharp Kit fonts.
-* Preserve native Elementor definitions and the large-Kit in-memory adapter.
-* No paid font binaries or bundled copied Pro metadata.
+= 1.1.2 =
+* Dynamically discover all Font Awesome 7 family-styles and Pro/Pro Plus collections using official release-specific public metadata instead of a 17-style fixed map.
+* Register only icon styles actually served by the configured Kit; no hardcoded Kit IDs.
+* Preserve native Regular, Solid, and Brands using Elementor Core's original Free definitions when a selective Kit omits those families.
+* Show native Light and Duotone only when enabled by the Kit, without duplicating native categories under My Libraries.
+* Correct native Free font-family compatibility alongside a selected Pro Plus Kit; retain saved icon markup and frontend rendering.
+* Refresh cached Kit style inventory when its published configuration changes.
+* Owner visually accepted the no-Kit, small Kit and full Pro Plus Kit modes on Solutions playground October 31, 2026.
 
-= 1.1.0 =
-* Previous additive Kit libraries and editor memory work.
+= 1.1.1 =
+* Font Awesome 7 Free and Kit-dependent Pro libraries, official public icon-name metadata, and scoped editor memory adapter.
+* Original licensed Free assets and license notices; no paid Font Awesome fonts or SVGs distributed.

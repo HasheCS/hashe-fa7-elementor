@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Hashe Font Awesome 7 Icon Library for Elementor
  * Description: Enhances Elementor's native icon picker with Font Awesome 7 catalogs, using styles supplied by the configured Font Awesome Kit.
- * Version: 1.1.1
+ * Version: 1.1.2
  * Requires at least: 6.2
  * Requires PHP: 7.4
  * Requires Plugins: elementor
@@ -13,6 +13,7 @@
  */
 defined( 'ABSPATH' ) || exit;
 require_once __DIR__ . '/includes/catalog-provider.php';
+require_once __DIR__ . '/includes/dynamic-family-provider.php';
 
 /**
  * Register Kit-owned tabs through Elementor's additional_tabs API.
@@ -20,28 +21,6 @@ require_once __DIR__ . '/includes/catalog-provider.php';
  * A separate approved Kit-only editor cache adapter scopes storage hooks
  * strictly to our own added catalog keys.
  */
-function hashe_fa7_additive_specs() {
-    return array(
-        'fab'   => array( 'Brands', 'fa-brands' ),
-        'fas'   => array( 'Classic Solid', 'fa-solid' ),
-        'far'   => array( 'Classic Regular', 'fa-regular' ),
-        'fal'   => array( 'Classic Light', 'fa-light' ),
-        'fat'   => array( 'Classic Thin', 'fa-thin' ),
-        'fad'   => array( 'Duotone Solid', 'fa-duotone fa-solid' ),
-        'fadr'  => array( 'Duotone Regular', 'fa-duotone fa-regular' ),
-        'fadl'  => array( 'Duotone Light', 'fa-duotone fa-light' ),
-        'fadt'  => array( 'Duotone Thin', 'fa-duotone fa-thin' ),
-        'fass'  => array( 'Sharp Solid', 'fa-sharp fa-solid' ),
-        'fasr'  => array( 'Sharp Regular', 'fa-sharp fa-regular' ),
-        'fasl'  => array( 'Sharp Light', 'fa-sharp fa-light' ),
-        'fast'  => array( 'Sharp Thin', 'fa-sharp fa-thin' ),
-        'fasds' => array( 'Sharp Duotone Solid', 'fa-sharp-duotone fa-solid' ),
-        'fasdr' => array( 'Sharp Duotone Regular', 'fa-sharp-duotone fa-regular' ),
-        'fasdl' => array( 'Sharp Duotone Light', 'fa-sharp-duotone fa-light' ),
-        'fasdt' => array( 'Sharp Duotone Thin', 'fa-sharp-duotone fa-thin' ),
-    );
-}
-
 /** Get Kit's version and publicly served family styles. Cached by Kit ID. */
 function hashe_fa7_additive_kit() {
     static $memo = null;
@@ -54,14 +33,15 @@ function hashe_fa7_additive_kit() {
         return false;
     }
 
-    $cache_key = 'hashe_fa7_additive_kit_' . $id;
+    $cache_key = 'hashe_fa7_additive_kit_v3_' . $id;
     $cached = get_transient( $cache_key );
 
     // Re-check the active Kit's published revision during Elementor editor
     // initialization. Kit IDs stay constant when styles change, so an
     // hour-long ID-only transient otherwise gives obsolete sidebar entries.
     // Frontend requests retain the fast cached path.
-    $editor_reload = did_action( 'elementor/editor/before_enqueue_scripts' ) ||
+    $editor_reload = ( is_admin() && ! wp_doing_ajax() ) ||
+        did_action( 'elementor/editor/before_enqueue_scripts' ) ||
         doing_action( 'elementor/editor/before_enqueue_scripts' ) ||
         did_action( 'elementor/editor/after_enqueue_scripts' );
     if ( ! $editor_reload && is_array( $cached ) && ! empty( $cached['styles'] ) ) {
@@ -120,53 +100,56 @@ function hashe_fa7_additive_kit() {
         return $memo;
     }
 
-    // An SVG+JS Kit without a subset loads Font Awesome's full Pro entrypoint.
-    // Do not equate method=js alone with every style being available: verify
-    // the explicit full-Pro startup filename, no subset, license, version and
-    // successfully served CDN script before registering the full catalog.
+    // The public release manifest defines ALL possible styles. Which ones
+    // a given Kit can serve comes only from its published, licensed assets.
+    $specs = hashe_fa7_additive_specs( $version );
+    if ( ! $specs ) {
+        return false;
+    }
+
+    // Full SVG+JS Kits: the startup file states the customer's actual plan.
+    // Query Font Awesome's release-specific Pro / Pro Plus collection rather
+    // than assuming every released style is permitted for every Pro Kit.
     if (
         'js' === $method &&
         '' === $subset &&
         'pro' === (string) ( $config['license'] ?? '' ) &&
-        'pro.min.js' === (string) ( $config['startupFilename'] ?? '' )
+        in_array( (string) ( $config['startupFilename'] ?? '' ),
+            array( 'pro.min.js', 'pro-plus.min.js' ), true )
     ) {
+        $startup = (string) $config['startupFilename'];
+        $collection = 'pro-plus.min.js' === $startup ? 'pro-plus-collection' : 'pro-collection';
+        $allowed = hashe_fa7_release_collection_prefixes( $version, $collection );
         $full_url = 'https://ka-p.fontawesome.com/releases/v' . $version .
-            '/js/pro.min.js?token=' . $id;
+            '/js/' . $startup . '?token=' . $id;
         $full_response = wp_remote_get( $full_url, $request );
         if (
+            $allowed &&
             ! is_wp_error( $full_response ) &&
             200 === (int) wp_remote_retrieve_response_code( $full_response ) &&
             strlen( (string) wp_remote_retrieve_body( $full_response ) ) > 50000
         ) {
-            $styles = array_keys( hashe_fa7_additive_specs() );
+            $styles = array_values( array_intersect( array_keys( $specs ), $allowed ) );
         }
     } elseif (
         'css' === $method &&
         preg_match( '~^assets/' . preg_quote( $id, '~' ) . '/[0-9]+/kit\.css$~D', $subset )
     ) {
-        // A subsetted Web Fonts Kit: styles are identifiable from its font files,
-        // never from common CSS class names (those are shared across styles).
+        // CSS subset Kits enumerate only the styles actually delivered as
+        // web fonts. Release shorthands are authoritative, not a fixed map.
         $css_response = wp_remote_get(
             'https://ka-p.fontawesome.com/' . $subset . '?token=' . $id,
             $request
         );
-        if ( is_wp_error( $css_response ) || 200 !== wp_remote_retrieve_response_code( $css_response ) ) {
+        if ( is_wp_error( $css_response ) || 200 !== (int) wp_remote_retrieve_response_code( $css_response ) ) {
             return false;
         }
-        $css = wp_remote_retrieve_body( $css_response );
-        $font_names = array(
-            'brands' => 'fab', 'solid' => 'fas', 'regular' => 'far',
-            'light' => 'fal', 'thin' => 'fat',
-            'duotone-solid' => 'fad', 'duotone' => 'fad',
-            'duotone-regular' => 'fadr', 'duotone-light' => 'fadl',
-            'duotone-thin' => 'fadt',
-            'sharp-solid' => 'fass', 'sharp-regular' => 'fasr',
-            'sharp-light' => 'fasl', 'sharp-thin' => 'fast',
-            'sharp-duotone-solid' => 'fasds',
-            'sharp-duotone-regular' => 'fasdr',
-            'sharp-duotone-light' => 'fasdl',
-            'sharp-duotone-thin' => 'fasdt',
-        );
+        $css = (string) wp_remote_retrieve_body( $css_response );
+        $font_names = array();
+        foreach ( $specs as $prefix => $spec ) {
+            $font_names[ $spec[2] ] = $prefix; // e.g. notdog-solid -> fans
+            $font_names[ $spec['family'] . '-' . $spec['style'] ] = $prefix;
+        }
         if ( preg_match_all( '~(?:pro-|free-)?fa-([a-z-]+)-[0-9]+(?:-[0-9]+)?\.woff2~', $css, $matches ) ) {
             foreach ( $matches[1] as $font ) {
                 if ( isset( $font_names[ $font ] ) ) {
@@ -176,7 +159,6 @@ function hashe_fa7_additive_kit() {
         }
         $styles = array_keys( $styles );
     }
-
     if ( ! $styles ) {
         return false; // Keep Elementor's existing integration unchanged.
     }
@@ -229,13 +211,18 @@ function hashe_fa7_register_kit_additional_tabs( $tabs ) {
         // as Free: Elementor Pro still owns its configured Kit integration.
         return $tabs;
     }
-    $specs = hashe_fa7_additive_specs();
+    $specs = hashe_fa7_additive_specs( $kit['version'] );
     $names = hashe_fa7_public_catalogs( $kit['version'] );
     if ( ! $names ) {
         return $tabs; // No invented Pro libraries if API/cache unavailable.
     }
     foreach ( $kit['styles'] as $style ) {
         if ( ! isset( $specs[ $style ] ) ) {
+            continue;
+        }
+        // These five classic styles belong to Elementor's native picker.
+        // Never duplicate them under My Libraries when a Kit includes them.
+        if ( in_array( $style, array( 'fas', 'far', 'fab', 'fal', 'fad' ), true ) ) {
             continue;
         }
         $id = 'hashe-fa7-kit-' . $style;
@@ -254,7 +241,7 @@ function hashe_fa7_register_kit_additional_tabs( $tabs ) {
         $tabs[ $id ] = array(
             'name'          => $id,
             'label'         => 'Font Awesome Kit - ' . $specs[ $style ][0],
-            'labelIcon'     => 'fab' === $style ? 'fab fa-font-awesome-flag' : $style . ' fa-flag',
+            'labelIcon'     => $style . ' fa-' . ( in_array( 'star', $icons, true ) ? 'star' : ( in_array( 'font-awesome', $icons, true ) ? 'font-awesome' : $icons[0] ) ),
             'url'           => false,
             'enqueue'       => false,
             'prefix'        => 'fa-',
@@ -266,6 +253,126 @@ function hashe_fa7_register_kit_additional_tabs( $tabs ) {
     }
     return $tabs;
 }
+/**
+ * Capture Elementor Core's three original Free library definitions before
+ * Elementor Pro replaces them for any Kit ID. This is request-local only.
+ * We never modify Elementor's plugin files or copy/edit its icon catalogs.
+ */
+function hashe_fa7_capture_elementor_native_free_tabs( $tabs ) {
+    if ( is_array( $tabs ) ) {
+        $GLOBALS['hashe_fa7_original_native_free_tabs'] = array_intersect_key(
+            $tabs, array_flip( array( 'fa-regular', 'fa-solid', 'fa-brands' ) )
+        );
+    }
+    return $tabs;
+}
+add_filter( 'elementor/icons_manager/native', 'hashe_fa7_capture_elementor_native_free_tabs', 1 );
+
+/**
+ * Elementor Pro registers five Pro native tabs whenever a Kit exists, even
+ * if the Kit only contains non-native Pro Plus families. Keep Elementor's
+ * three Core libraries ALWAYS visible. Use their original Free tab
+ * definitions when the Kit lacks their matching Classic Pro style. Keep
+ * Pro Light/Duotone only when the Kit actually serves those font styles.
+ *
+ * Editor only: do not change saved icon-library references or frontend tabs.
+ */
+function hashe_fa7_sync_native_tabs_to_kit( $tabs ) {
+    if ( ! is_array( $tabs ) || ! is_admin() ) {
+        return $tabs;
+    }
+    $id = trim( (string) get_option( 'elementor_font_awesome_pro_kit_id', '' ) );
+    if ( '' === $id ) {
+        return $tabs;
+    }
+    $kit = hashe_fa7_additive_kit();
+    if ( ! is_array( $kit ) || empty( $kit['styles'] ) ) {
+        return $tabs; // Unreachable/invalid Kit: do not infer entitlement.
+    }
+    $available = array_fill_keys( $kit['styles'], true );
+    $core = $GLOBALS['hashe_fa7_original_native_free_tabs'] ?? array();
+    foreach ( array(
+        'fa-regular' => 'far',
+        'fa-solid'   => 'fas',
+        'fa-brands'  => 'fab',
+    ) as $tab => $style ) {
+        if ( ! isset( $available[ $style ] ) && isset( $core[ $tab ] ) ) {
+            $tabs[ $tab ] = $core[ $tab ]; // Original Core Free, not blank Pro.
+        }
+    }
+    foreach ( array( 'fa-light' => 'fal', 'fa-duotone' => 'fad' ) as $tab => $style ) {
+        if ( ! isset( $available[ $style ] ) ) {
+            unset( $tabs[ $tab ] ); // Only Pro-only unavailable categories.
+        }
+    }
+    return $tabs;
+}
+add_filter( 'elementor/icons_manager/native', 'hashe_fa7_sync_native_tabs_to_kit', 100 );
+/**
+ * Elementor Core's native Free styles use FA5 Free fonts. Font Awesome 7
+ * Kit CSS globally assigns .fas/.far to FA7 Pro even when those families
+ * are not in a selected-style Kit. This makes otherwise valid Free icons
+ * render as squares. Supply only omitted native Free styles from Elementor's
+ * own licensed bundled assets, and set the font family by native prefix.
+ * Never override enabled Kit fonts or non-native Pro Plus family selectors.
+ *
+ * Editor and frontend: saved icon value/library data is never altered.
+ */
+function hashe_fa7_enqueue_native_core_free_fallback() {
+    if ( ! defined( 'ELEMENTOR_ASSETS_URL' ) || ! defined( 'ELEMENTOR_VERSION' ) ) {
+        return;
+    }
+    if ( '' === trim( (string) get_option( 'elementor_font_awesome_pro_kit_id', '' ) ) ) {
+        return; // Existing no-Kit mode remains unchanged.
+    }
+    $kit = hashe_fa7_additive_kit();
+    if ( ! is_array( $kit ) || empty( $kit['styles'] ) ) {
+        return; // No unlicensed or guessed recovery.
+    }
+    $enabled = array_fill_keys( $kit['styles'], true );
+    $fallback = array(
+        'fas' => array(
+            'file' => 'solid',
+            'css' => 'body .fas, body .fa-solid { font-family: "Font Awesome 5 Free"; font-weight: 900; }',
+        ),
+        'far' => array(
+            'file' => 'regular',
+            'css' => 'body .far, body .fa-regular { font-family: "Font Awesome 5 Free"; font-weight: 400; }',
+        ),
+        'fab' => array(
+            'file' => 'brands',
+            'css' => 'body .fab, body .fa-brands { font-family: "Font Awesome 5 Brands"; font-weight: 400; }',
+        ),
+    );
+    $missing = array_diff_key( $fallback, $enabled );
+    if ( ! $missing ) {
+        return;
+    }
+    $base = ELEMENTOR_ASSETS_URL . 'lib/font-awesome/css/';
+    wp_enqueue_style(
+        'hashe-fa7-native-free-core',
+        $base . 'fontawesome.min.css',
+        array(),
+        ELEMENTOR_VERSION
+    );
+    $css = '';
+    foreach ( $missing as $prefix => $spec ) {
+        $handle = 'hashe-fa7-native-free-' . $prefix;
+        wp_enqueue_style(
+            $handle,
+            $base . $spec['file'] . '.min.css',
+            array( 'hashe-fa7-native-free-core' ),
+            ELEMENTOR_VERSION
+        );
+        $css .= $spec['css'] . "\n";
+    }
+    // The body selector wins for missing Free families regardless of the
+    // Kit stylesheet injection order, without modifying third-party files.
+    wp_add_inline_style( 'hashe-fa7-native-free-core', $css );
+}
+add_action( 'elementor/editor/after_enqueue_styles', 'hashe_fa7_enqueue_native_core_free_fallback', 150 );
+add_action( 'elementor/frontend/after_enqueue_styles', 'hashe_fa7_enqueue_native_core_free_fallback', 150 );
+
 add_filter( 'elementor/icons_manager/additional_tabs', 'hashe_fa7_register_kit_additional_tabs' );
 /**
  * No direct Pro font-shard recovery: Font Awesome Kit style selection is the
@@ -275,7 +382,7 @@ add_filter( 'elementor/icons_manager/additional_tabs', 'hashe_fa7_register_kit_a
 
 /**
  * Full-library Kits exceed Elementor 4.3.5's browser localStorage quota when
- * all 17 Kit catalogs are normalized. A version-scoped, Kit-only editor
+ * all Kit catalogs are normalized. A version-scoped, Kit-only editor
  * adapter keeps ONLY our add-on catalog records in memory.
  *
  * The two-style Kit already works normally and is intentionally unchanged.
@@ -291,7 +398,7 @@ function hashe_fa7_enqueue_kit_memory_cache() {
         'hashe-fa7-kit-memory-cache',
         plugins_url( 'assets/js/editor-kit-memory.js', __FILE__ ),
         array( 'elementor-editor' ),
-        '1.1.1',
+        '1.1.2',
         true
     );
 }

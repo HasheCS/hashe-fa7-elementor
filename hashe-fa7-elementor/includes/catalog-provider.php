@@ -47,7 +47,7 @@ function hashe_fa7_public_catalogs( $version ) {
     if ( ! hashe_fa7_api_supported_version( $version ) ) {
         return false;
     }
-    $prefix = 'hashe_fa7_metadata_v3_' . md5( $version );
+    $prefix = 'hashe_fa7_metadata_v4_' . md5( $version );
     $fresh = get_transient( $prefix );
     if ( hashe_fa7_valid_catalog_cache( $fresh, $version ) ) {
         return $fresh['catalogs'];
@@ -101,7 +101,7 @@ function hashe_fa7_valid_catalog_cache( $data, $version ) {
 }
 
 function hashe_fa7_download_public_catalogs( $version ) {
-    $styles = array_fill_keys( array_keys( hashe_fa7_additive_specs() ), true );
+    $styles = array_fill_keys( array_keys( hashe_fa7_additive_specs( $version ) ), true );
     $result = array( 'free' => array(), 'pro' => array() );
     foreach ( array_keys( $styles ) as $style ) {
         $result['free'][ $style ] = array();

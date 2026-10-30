@@ -1,187 +1,128 @@
 <?php
-/** Release candidate regression: a separate process for every scenario. */
-define( 'ABSPATH', __DIR__ );
-define( 'HOUR_IN_SECONDS', 3600 );
-define( 'DAY_IN_SECONDS', 86400 );
-define( 'MINUTE_IN_SECONDS', 60 );
-$GLOBALS['scenario'] = $argv[1] ?? 'no-kit';
-$GLOBALS['options'] = array();
-$GLOBALS['transients'] = array();
-$GLOBALS['filters'] = array();
-$GLOBALS['actions'] = array();
-$GLOBALS['enqueued_styles'] = array();
-$GLOBALS['inline_styles'] = array();
-$GLOBALS['enqueued_scripts'] = array();
-$GLOBALS['requests'] = array();
-$GLOBALS['source_version'] = '7.3.1';
-$scenario = $GLOBALS['scenario'];
-$allowed = array(
-    'no-kit', 'invalid', 'css-small', 'css-brands', 'css-one', 'full-js',
-    'css-new-version', 'css-api-offline', 'css-stale-cache'
-);
-if ( ! in_array( $scenario, $allowed, true ) ) { die( "bad scenario\n" ); }
-$GLOBALS['kit_id'] = 'no-kit' === $scenario ? '' : ( 'invalid' === $scenario ? 'bad-id' : '0123456789' );
-if ( 'css-new-version' === $scenario ) { $GLOBALS['source_version'] = '7.4.0'; }
-function check( $truth, $label ) {
-    if ( ! $truth ) { fwrite( STDERR, "FAIL: $label\n" ); exit( 1 ); }
+/** Standalone regression for Font Awesome 7 + Elementor Kit modes. */
+define('ABSPATH', __DIR__);
+define('HOUR_IN_SECONDS', 3600);
+define('DAY_IN_SECONDS', 86400);
+define('MINUTE_IN_SECONDS', 60);
+define('ELEMENTOR_ASSETS_URL', 'https://example.test/elementor/assets/');
+define('ELEMENTOR_VERSION', '4.3.5');
+$case=$argv[1]??'no-kit';
+$valid=array('no-kit','invalid-kit','css-small','css-mixed','full-pro','full-plus','css-stale','css-api-offline');
+if(!in_array($case,$valid,true)){fwrite(STDERR,"UNKNOWN_CASE\n");exit(2);}
+$GLOBALS['case']=$case;
+$GLOBALS['kit_id']='no-kit'===$case?'':('invalid-kit'===$case?'invalid-id':'0123456789');
+$GLOBALS['filters']=array();$GLOBALS['actions']=array();$GLOBALS['styles']=array();$GLOBALS['inline']=array();
+$GLOBALS['scripts']=array();$GLOBALS['transients']=array();$GLOBALS['options']=array();$GLOBALS['requests']=array();
+$GLOBALS['frontend']=false;
+function check($yes,$why){if(!$yes){fwrite(STDERR,"FAIL $why\n");exit(3);}}
+function add_filter($hook,$fn,$priority=10){$GLOBALS['filters'][$hook][]=array($priority,$fn);}
+function add_action($hook,$fn,$priority=10){$GLOBALS['actions'][$hook][]=array($priority,$fn);}
+function apply_filters($hook,$value){$f=$GLOBALS['filters'][$hook]??array();usort($f,function($a,$b){return $a[0]<=>$b[0];});foreach($f as $row)$value=call_user_func($row[1],$value);return $value;}
+function get_option($name,$default=false){return 'elementor_font_awesome_pro_kit_id'===$name?$GLOBALS['kit_id']:($GLOBALS['options'][$name]??$default);}
+function add_option($key,$val,$deprecated='',$autoload='no'){if(array_key_exists($key,$GLOBALS['options']))return false;$GLOBALS['options'][$key]=$val;return true;}
+function update_option($key,$val,$autoload=null){$GLOBALS['options'][$key]=$val;return true;}
+function delete_option($key){unset($GLOBALS['options'][$key]);}
+function get_transient($key){return $GLOBALS['transients'][$key]??false;}
+function set_transient($key,$val,$ttl=0){$GLOBALS['transients'][$key]=$val;return true;}
+function home_url($path=''){return 'https://example.test/'.$path;}
+function did_action($name){return 0;}
+function doing_action($name){return false;}
+function is_admin(){return !$GLOBALS['frontend'];}
+function wp_doing_ajax(){return false;}
+function wp_json_encode($v){return json_encode($v);}
+function is_wp_error($r){return false;}
+function wp_remote_retrieve_response_code($r){return $r['code'];}
+function wp_remote_retrieve_body($r){return $r['body'];}
+function plugins_url($path,$file){return 'https://example.test/plugins/hashe-fa7-elementor/'.$path;}
+function wp_enqueue_style($name,$url=null,$deps=array(),$version=''){$GLOBALS['styles'][$name]=$url;}
+function wp_register_style($name,$url=null,$deps=array(),$version=''){$GLOBALS['styles'][$name]=$url;}
+function wp_add_inline_style($name,$content){$GLOBALS['inline'][$name]=($GLOBALS['inline'][$name]??'').$content;return true;}
+function wp_enqueue_script($name,$url,$deps=array(),$version='', $footer=false){$GLOBALS['scripts'][$name]=$url;}
+function family_rows(){return array(
+array('prefix'=>'fas','family'=>'classic','style'=>'solid','shorthand'=>'solid'),
+array('prefix'=>'far','family'=>'classic','style'=>'regular','shorthand'=>'regular'),
+array('prefix'=>'fab','family'=>'brands','style'=>'brands','shorthand'=>'brands'),
+array('prefix'=>'fal','family'=>'classic','style'=>'light','shorthand'=>'light'),
+array('prefix'=>'fad','family'=>'duotone','style'=>'solid','shorthand'=>'duotone-solid'),
+array('prefix'=>'fat','family'=>'classic','style'=>'thin','shorthand'=>'thin'),
+array('prefix'=>'fass','family'=>'sharp','style'=>'solid','shorthand'=>'sharp-solid'),
+array('prefix'=>'fajr','family'=>'jelly','style'=>'regular','shorthand'=>'jelly-regular'),
+array('prefix'=>'fans','family'=>'notdog','style'=>'solid','shorthand'=>'notdog-solid'),
+array('prefix'=>'fasldr','family'=>'slab-duo','style'=>'regular','shorthand'=>'slab-duo-regular'));}
+function response($status,$data){return array('code'=>$status,'body'=>is_string($data)?$data:json_encode($data));}
+function wp_remote_get($url,$args=array()){
+ $GLOBALS['requests'][]=$url;$case=$GLOBALS['case'];$id='0123456789';
+ if(strpos($url,'https://kit.fontawesome.com/'.$id.'.js')===0){
+  $full=in_array($case,array('full-pro','full-plus'),true);
+  $config=array('token'=>$id,'version'=>'7.3.1','method'=>$full?'js':'css','license'=>'pro',
+   'subsetPath'=>$full?'':'assets/'.$id.'/111/kit.css','startupFilename'=>$full?($case==='full-plus'?'pro-plus.min.js':'pro.min.js'):'');
+  return response(200,'window.FontAwesomeKitConfig='.json_encode($config).';');
+ }
+ if(strpos($url,'https://api.fontawesome.com/releases/7.3.1/family-styles')===0)return response(200,array('familyStyles'=>family_rows()));
+ if(strpos($url,'https://api.fontawesome.com/releases/7.3.1/icon-packs')===0){
+  $pro=array_slice(family_rows(),0,7);$plus=array_slice(family_rows(),7);
+  $simple=function($rows){return array_map(function($x){return array('family'=>$x['family'],'style'=>$x['style']);},$rows);};
+  return response(200,array('iconPacks'=>array(array('name'=>'pro-pack','familyStyles'=>$simple($pro)),array('name'=>'plus-pack','familyStyles'=>$simple($plus))),
+   'iconCollections'=>array(array('name'=>'pro-collection','iconPacks'=>array('pro-pack')),array('name'=>'pro-plus-collection','iconPacks'=>array('pro-pack','plus-pack')))));
+ }
+ if(strpos($url,'https://ka-p.fontawesome.com/assets/'.$id.'/111/kit.css')===0){
+  $css='url("pro-fa-jelly-regular-400-0.woff2") url("pro-fa-notdog-solid-900-0.woff2") url("pro-fa-slab-duo-regular-400-0.woff2")';
+  if('css-mixed'===$case)$css.=' url("pro-fa-light-300-0.woff2") url("pro-fa-duotone-solid-900-0.woff2")';
+  return response(200,$css);
+ }
+ if(strpos($url,'https://ka-p.fontawesome.com/releases/v7.3.1/js/')===0)return response(200,str_repeat('X',60000));
+ if(strpos($url,'https://api.fontawesome.com/releases/7.3.1/icons-minimal')===0){
+  if('css-api-offline'===$case)return response(503,'');
+  $styles=array_column(family_rows(),'prefix');
+  $variants=function($list){return array_map(function($p){return array('prefix'=>$p);},$list);};
+  $icons=array();
+  foreach(array('star','0','flag','font-awesome') as $n)$icons[]=array('id'=>$n,'familyStylesByLicense'=>array('free'=>$variants(array('fas','far','fab')),'pro'=>$variants($styles)));
+  return response(200,array('icons'=>$icons,'page'=>1,'pageSize'=>500,'totalIconCount'=>4,'totalPageCount'=>1));
+ }
+ return response(404,'');
 }
-function add_filter( $hook, $callback, $priority = 10 ) { $GLOBALS['filters'][$hook][] = $callback; }
-function add_action( $hook, $callback, $priority = 10 ) { $GLOBALS['actions'][$hook][] = $callback; }
-function get_option( $name, $default = false ) {
-    if ( 'elementor_font_awesome_pro_kit_id' === $name ) { return $GLOBALS['kit_id']; }
-    return $GLOBALS['options'][$name] ?? $default;
+if('css-stale'===$case)$GLOBALS['transients']['hashe_fa7_additive_kit_v3_0123456789']=array('styles'=>array('fas'),'revision'=>'obsolete','version'=>'7.3.1');
+require __DIR__.'/../hashe-fa7-elementor/hashe-fa7-elementor.php';
+$base=array();
+foreach(array('fa-regular'=>'Regular','fa-solid'=>'Solid','fa-brands'=>'Brands') as $k=>$name){
+ $base[$k]=array('name'=>$k,'label'=>'Font Awesome - '.$name,'native'=>true,'url'=>'https://example.test/free/'.$k.'.css','ver'=>'5.15.3','icons'=>array('star'));
 }
-function add_option( $name, $value, $deprecated = '', $autoload = 'no' ) {
-    if ( array_key_exists( $name, $GLOBALS['options'] ) ) { return false; }
-    $GLOBALS['options'][$name] = $value; return true;
+$core=$base;
+if('no-kit'!==$case)add_filter('elementor/icons_manager/native',function($tabs){
+ foreach(array('fa-regular'=>'Regular','fa-solid'=>'Solid','fa-brands'=>'Brands','fa-light'=>'Light','fa-duotone'=>'Duotone') as $k=>$name)
+  $tabs[$k]=array('name'=>$k,'label'=>'Font Awesome - '.$name.' Pro','native'=>true,'url'=>false,'ver'=>'5.15.1-pro','icons'=>array('star'));
+ return $tabs;
+},10);
+$native=apply_filters('elementor/icons_manager/native',$base);
+$added=apply_filters('elementor/icons_manager/additional_tabs',array());
+$kit=hashe_fa7_additive_kit();$styles=$kit['styles']??array();
+foreach(array('fa-regular'=>'far','fa-solid'=>'fas','fa-brands'=>'fab') as $tab=>$prefix){
+ check(isset($native[$tab]),'three Core native categories');
+ if($kit&&!in_array($prefix,$styles,true))check($native[$tab]===$core[$tab],'native Free definition when omitted');
 }
-function update_option( $name, $value, $autoload = null ) { $GLOBALS['options'][$name] = $value; return true; }
-function delete_option( $name ) { unset( $GLOBALS['options'][$name] ); }
-function get_transient( $name ) { return $GLOBALS['transients'][$name] ?? false; }
-function set_transient( $name, $value, $time = 0 ) { $GLOBALS['transients'][$name] = $value; return true; }
-function did_action( $name ) { return 'elementor/editor/before_enqueue_scripts' === $name ? 1 : 0; }
-function doing_action( $name ) { return false; }
-function home_url( $path = '' ) { return 'https://example.test/' . $path; }
-function wp_json_encode( $obj ) { return json_encode( $obj ); }
-function is_wp_error( $value ) { return false; }
-function wp_remote_retrieve_response_code( $response ) { return $response['code']; }
-function wp_remote_retrieve_body( $response ) { return $response['body']; }
-function plugins_url( $path, $file ) { return 'https://example.test/plugins/hashe-fa7-elementor/' . $path; }
-function esc_url_raw( $url ) { return $url; }
-function wp_enqueue_script( $handle, $src, $deps = array(), $ver = '', $foot = false ) {
-    $GLOBALS['enqueued_scripts'][$handle] = $src;
+check(isset($native['fa-light'])===(in_array('fal',$styles,true)||'invalid-kit'===$case),'native Light entitlement');
+check(isset($native['fa-duotone'])===(in_array('fad',$styles,true)||'invalid-kit'===$case),'native Duotone entitlement');
+$expected=array();
+if('no-kit'===$case)$expected=array('hashe-fa7-free-fas','hashe-fa7-free-far','hashe-fa7-free-fab');
+elseif($kit)foreach($styles as $p)if(!in_array($p,array('fas','far','fab','fal','fad'),true))$expected[]='hashe-fa7-kit-'.$p;
+if('css-api-offline'===$case)$expected=array();
+sort($expected);$actual=array_keys($added);sort($actual);
+check($actual===$expected,'additional library membership');
+foreach($added as $id=>$tab){check(count($tab['icons'])>0,'nonempty icon tab');foreach($tab['icons'] as $n)check(is_string($n),'numeric icon names are strings');if(strpos($id,'hashe-fa7-kit-')===0)check(in_array('0',$tab['icons'],true),'numeric 0 preserved');}
+if('full-pro'===$case)check(count($styles)===7,'dynamic Pro collection');
+if('full-plus'===$case)check(count($styles)===10,'dynamic Pro Plus collection');
+if('css-stale'===$case)check(!in_array('fas',$styles,true)&&in_array('fajr',$styles,true),'republished Kit invalidates stale inventory');
+if('no-kit'!==$case&&$kit){
+ hashe_fa7_enqueue_native_core_free_fallback();
+ foreach(array('fas','far','fab') as $p){
+  $needed=!in_array($p,$styles,true);
+  check(isset($GLOBALS['styles']['hashe-fa7-native-free-'.$p])===$needed,'missing native Free asset '.$p);
+  check((strpos($GLOBALS['inline']['hashe-fa7-native-free-core']??'','body .'.$p)!==false)===$needed,'missing native Free font rule '.$p);
+ }
 }
-function wp_register_style( $handle, $src, $deps = array(), $ver = '' ) {}
-function wp_add_inline_style( $handle, $css ) { $GLOBALS['inline_styles'][$handle] = $css; }
-function wp_enqueue_style( $handle, $src = null, $deps = array(), $ver = '' ) {
-    $GLOBALS['enqueued_styles'][$handle] = $src;
-}
-function wp_remote_get( $url, $args = array() ) {
-    $GLOBALS['requests'][] = $url;
-    $kit = '0123456789';
-    if ( strpos( $url, 'https://kit.fontawesome.com/' . $kit . '.js' ) === 0 ) {
-        $method = 'full-js' === $GLOBALS['scenario'] ? 'js' : 'css';
-        $config = array(
-            'token' => $kit, 'version' => $GLOBALS['source_version'],
-            'method' => $method, 'license' => 'pro',
-            'subsetPath' => 'js' === $method ? '' : 'assets/' . $kit . '/124/kit.css',
-            'startupFilename' => 'js' === $method ? 'pro.min.js' : '',
-        );
-        return array( 'code'=>200, 'body'=>'window.FontAwesomeKitConfig=' . json_encode($config) . ';' );
-    }
-    if ( strpos( $url, 'ka-p.fontawesome.com/assets/' . $kit ) !== false ) {
-        $css = 'url("pro-fa-sharp-solid-900-0.woff2")';
-        if ( 'css-one' !== $GLOBALS['scenario'] ) {
-            $css .= ' url("pro-fa-sharp-regular-400-0.woff2") url("pro-fa-sharp-light-300-0.woff2")';
-        }
-        if ( 'css-brands' === $GLOBALS['scenario'] ) {
-            $css .= ' url("free-fa-brands-400-0.woff2")';
-        }
-        return array( 'code'=>200, 'body'=>$css );
-    }
-    if ( strpos( $url, 'ka-p.fontawesome.com/releases/v' ) !== false ) {
-        return array( 'code'=>200, 'body'=>str_repeat( 'X', 51000 ) );
-    }
-    if ( strpos( $url, 'https://api.fontawesome.com/releases/' ) === 0 ) {
-        if ( 'css-api-offline' === $GLOBALS['scenario'] || 'css-stale-cache' === $GLOBALS['scenario'] ) {
-            return array( 'code'=>503, 'body'=>'' );
-        }
-        // Four sample icon IDs validate both license maps and style filtering.
-        $all = array();
-        foreach ( array(
-            array('house',array('fas'),array('fas','far','fal','fad','fass','fasr','fasl')),
-            array('flag',array('fab'),array('fab','far','fas')),
-            array('address-book',array('far'),array('far','fas','fal')),
-            array('arrow',array(),array_keys(hashe_fa7_additive_specs())),
-            array('0',array('fas'),array_keys(hashe_fa7_additive_specs())),
-            array('1',array('far'),array_keys(hashe_fa7_additive_specs())),
-            array('9',array('fab'),array_keys(hashe_fa7_additive_specs())),
-            array('42',array('fab'),array_keys(hashe_fa7_additive_specs())),
-        ) as $record ) {
-            $variant = array();
-            foreach ( array('free'=>$record[1],'pro'=>$record[2]) as $license=>$list ) {
-                $variant[$license] = array_map( function($p) { return array('prefix'=>$p); }, $list );
-            }
-            $all[] = array( 'id'=>$record[0], 'familyStylesByLicense'=>$variant );
-        }
-        return array( 'code'=>200, 'body'=>json_encode( array(
-            'icons'=>$all, 'page'=>1, 'pageSize'=>500, 'totalIconCount'=>8, 'totalPageCount'=>1,
-        ) ) );
-    }
-    return array( 'code'=>404, 'body'=>'' );
-}
-require __DIR__ . '/../hashe-fa7-elementor/hashe-fa7-elementor.php';
-check( isset( $GLOBALS['filters']['elementor/icons_manager/additional_tabs'] ), 'additional tabs hook' );
-$native=array();
-foreach(array('fa-regular','fa-solid','fa-brands','fa-light','fa-duotone') as $name) {
-    $native[$name]=array('name'=>$name,'native'=>true,'labelIcon'=>'native-label','icons'=>array('keep'));
-}
-$before=json_encode($native);
-if ('css-stale-cache' === $scenario) {
-    $key='hashe_fa7_metadata_v3_' . md5($GLOBALS['source_version']) . '_last';
-    $data=array('version'=>$GLOBALS['source_version'],'updated'=>time(),'catalogs'=>array(
-        'free'=>array('fass'=>array('house','0'),'fasr'=>array('house','0'),'fasl'=>array('house','0')),
-        'pro'=>array('fass'=>array('arrow','0'),'fasr'=>array('arrow','0'),'fasl'=>array('arrow','0'))
-    ));
-    update_option($key,$data,false);
-}
-$tabs=hashe_fa7_register_kit_additional_tabs($native);
-$expected=array(
-    'no-kit'=>3, 'invalid'=>0,'css-small'=>3,'css-brands'=>4,
-    'css-one'=>1,'full-js'=>17,'css-new-version'=>3,
-    'css-api-offline'=>0,'css-stale-cache'=>3
-)[$scenario];
-check( count($tabs)===count($native)+$expected,'expected tab count '.$expected.' got '.(count($tabs)-count($native)) );
-check( json_encode($native)===$before, 'native definitions are byte-identical' );
-foreach($native as $name=>$config){check($tabs[$name]===$config,'native entry unmodified '.$name);}
-$kit=0;$free=0;
-foreach($tabs as $name=>$data){
-    if(strpos($name,'hashe-fa7-kit-')===0){
-        $kit++;
-        check(count($data['icons'])>0,'valid Kit icons present');
-        foreach($data['icons'] as $iconName){check(is_string($iconName),'all Kit icon IDs must be strings: '.gettype($iconName));}
-        check(in_array('0',$data['icons'],true),'numeric Font Awesome IDs preserve string type');
-    }
-    if(strpos($name,'hashe-fa7-free-')===0){
-        $free++;
-        check(count($data['icons'])>0,'Free icons present');
-        if('hashe-fa7-free-fab'===$name){check($data['labelIcon']==='fab fa-font-awesome-flag','Brands navigation glyph is valid');}
-    }
-}
-check($free === ('no-kit'===$scenario ? 3 : 0),'Free mode exclusive to no Kit');
-check($kit === ('no-kit'===$scenario ? 0 : $expected),'Kit metadata correct');
-hashe_fa7_enqueue_no_kit_free_assets();
-check(isset($GLOBALS['enqueued_styles']['hashe-fa7-free-core']) === ('no-kit'===$scenario),'local Free CSS only in no Kit');
-hashe_fa7_supply_standard_brands_asset_if_missing();
-check(isset($GLOBALS['enqueued_styles']['hashe-fa7-standard-brands-asset']) ===
-    (in_array($scenario,array('css-small','css-one','css-api-offline','css-stale-cache'),true)),
-    'conditional original Brands recovery');
-hashe_fa7_enqueue_native_sharp_fallback();
-$fallback = $GLOBALS['inline_styles']['hashe-fa7-native-sharp-compat'] ?? '';
-if (in_array($scenario,array('css-small','css-one','css-brands','css-api-offline','css-stale-cache','css-new-version'),true)) {
-    check(strpos($fallback,'.fas{')!==false,'Missing Classic Solid fallback to selected Sharp');
-    check(strpos($fallback,'.far{')!==false,'Missing Classic Regular fallback to selected Sharp');
-    check(strpos($fallback,'.fal{')!==false,'Missing Classic Light fallback to selected Sharp');
-    check(strpos($fallback,'.fad{')!==false,'Missing mono Duotone fallback to selected Sharp');
-    check(strpos($fallback,'.fad::after{content:none!important;}')!==false,'Duotone must not render unlicensed second glyph layer');
-    check(strpos($fallback,'@font-face')===false,'No unauthorized fonts introduced');
-    check(strpos($fallback,'http')===false,'No new network font requests');
-    if($scenario==='css-small'){
-        check(strpos($fallback,'.fas{--fa-family:var(--fa-family-sharp,"Font Awesome 7 Sharp");--fa-style:900;}')!==false,'Solid uses enabled Sharp Solid');
-        check(strpos($fallback,'.far{--fa-family:var(--fa-family-sharp,"Font Awesome 7 Sharp");--fa-style:400;}')!==false,'Regular uses enabled Sharp Regular');
-        check(strpos($fallback,'.fal{--fa-family:var(--fa-family-sharp,"Font Awesome 7 Sharp");--fa-style:300;}')!==false,'Light uses enabled Sharp Light');
-    }
-} else {
-    check($fallback==='','No fallback needed for no-Kit, invalid Kit, or full JS Kit');
-}
-hashe_fa7_enqueue_kit_memory_cache();
-check(isset($GLOBALS['enqueued_scripts']['hashe-fa7-kit-memory-cache']) ===
-    (in_array($scenario,array('css-small','css-brands','full-js','css-new-version','css-api-offline','css-stale-cache'),true)),
-    'Kit-only memory adapter');
-$all_requests=implode(' ',$GLOBALS['requests']);
-check(strpos($all_requests,'/webfonts/pro-fa-')===false,'no paid font-shard bypass requests');
-check(!is_file(__DIR__.'/../hashe-fa7-elementor/data/native-pro-unicode.json'),'no Pro unicode/shard map shipped');
-foreach(array_keys(hashe_fa7_additive_specs()) as $name){
-    check(!is_file(__DIR__.'/../hashe-fa7-elementor/data/'.$name.'.json'),'no bulk Pro names shipped: '.$name);
-}
-echo "PASS $scenario: $expected extra tabs, native unchanged, licensing boundaries intact.\n";
+check(strpos(implode(' ',$GLOBALS['requests']),'/webfonts/pro-fa-')===false,'no unauthorized Pro font shard');
+$GLOBALS['frontend']=true;
+$front=apply_filters('elementor/icons_manager/native',$base);
+if('no-kit'!==$case)check(isset($front['fa-light'])&&isset($front['fa-duotone']),'saved frontend native references retained');
+check(!is_file(__DIR__.'/../hashe-fa7-elementor/data/native-pro-unicode.json'),'no bundled Pro map');
+echo 'PASS '.$case.': native tabs, dynamically licensed Kit styles, Free fallback and saved icon references'.PHP_EOL;

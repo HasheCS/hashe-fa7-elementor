@@ -19,9 +19,10 @@ jobs:
         run: |
           php -l hashe-fa7-elementor/hashe-fa7-elementor.php
           php -l hashe-fa7-elementor/includes/catalog-provider.php
+          php -l hashe-fa7-elementor/includes/dynamic-family-provider.php
       - name: Test Free, CSS Kits, full JS Kits, version, API fallback and license gates
         run: |
-          for scenario in no-kit invalid css-small css-brands css-one full-js css-new-version css-api-offline css-stale-cache; do
+          for scenario in no-kit invalid-kit css-small css-mixed full-pro full-plus css-stale css-api-offline; do
             php tests/smoke.php "$scenario"
           done
   editor-storage:

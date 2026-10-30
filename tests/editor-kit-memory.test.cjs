@@ -45,7 +45,9 @@ assert.equal(initial.settings.name,'preserve user data');
 assert.ok(initial['elementor_fa-solid_icons'].icons.star);
 
 const styles=['fab','fas','far','fal','fat','fad','fadr','fadl','fadt',
-  'fass','fasr','fasl','fast','fasds','fasdr','fasdl','fasdt'];
+  'fass','fasr','fasl','fast','fasds','fasdr','fasdl','fasdt',
+  'facr','faes','fagt','fajr','fajdr','fajfr','fams','fans','fands','fapr',
+  'faslr','fasldr','faslpr','faslpdr','fatl','fausb','faudsb','faufsb','favs','fawsb'];
 for(const name of styles) {
   const library={name:'hashe-fa7-kit-'+name,icons:Object.fromEntries(
     Array.from({length:3781},(_,i)=>['icon-'+i,{name:'icon-'+i}]))};
@@ -53,7 +55,7 @@ for(const name of styles) {
   const key='elementor_hashe-fa7-kit-'+name+'_icons';
   assert.equal(Object.keys(store.get(key).icons).length,3781);
 }
-assert.equal(raw.get('elementor').length<450000,true,'full 17 catalogs never hit persistent quota');
+assert.equal(raw.get('elementor').length<450000,true,'full 37 catalogs never hit persistent quota');
 assert.equal(Object.keys(JSON.parse(raw.get('elementor'))).length,3,'only native+settings+expiration persist');
 const native={name:'fa-regular',icons:{user:{selector:'fa-user'}}};
 store.save(native);
@@ -62,4 +64,4 @@ assert.ok(JSON.parse(raw.get('elementor'))['elementor_fa-regular_icons']);
 assert.equal(store.get('elementor_unknown_icons'),undefined,'unknown reads retain native behavior');
 assert.equal(store.save,store.save,'installed once');
 assert.equal(typeof originalSave,'function');
-console.log('PASS: 17 supported Kit catalogs use memory only, stale Kit cache pruned, native storage and settings retained.');
+console.log('PASS: 37 supported Kit catalogs use memory only, stale Kit cache pruned, native storage and settings retained.');
