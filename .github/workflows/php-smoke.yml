@@ -1,4 +1,4 @@
-name: Release compliance and regression tests
+name: PHP and editor storage regression tests
 on:
   push:
   pull_request:
@@ -20,10 +20,15 @@ jobs:
           php -l hashe-fa7-elementor/hashe-fa7-elementor.php
           php -l hashe-fa7-elementor/includes/catalog-provider.php
           php -l hashe-fa7-elementor/includes/dynamic-family-provider.php
+          php -l hashe-fa7-elementor/includes/custom-kit-icons.php
       - name: Test Free, CSS Kits, full JS Kits, version, API fallback and license gates
         run: |
           for scenario in no-kit invalid-kit css-small css-mixed full-pro full-plus css-stale css-api-offline; do
             php tests/smoke.php "$scenario"
+          for scenario in full-plus-custom css-mixed-custom; do
+            php tests/smoke.php "$scenario"
+          done
+          php tests/custom-svg-classification.php
           done
   editor-storage:
     runs-on: ubuntu-latest

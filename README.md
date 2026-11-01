@@ -2,7 +2,7 @@
 
 An independently developed WordPress plugin that adds Font Awesome 7 styles to the **Elementor Icon Library**, including Pro Plus styles available in a customer's own Font Awesome Kit.
 
-**Stable v1.1.2 | Accepted on Solutions playground, October 31, 2026.**
+**Proposed v1.1.3 release candidate | Accepted on Solutions playground, November 2, 2026. Public stable remains v1.1.2 until separately published.**
 
 ## What it does
 
@@ -14,6 +14,13 @@ A Kit's **published CSS/JS assets** determine its actual style entitlement. Fami
 
 The integration never copies or redistributes paid Font Awesome fonts, SVGs, paid stylesheets or bundled Pro metadata catalogs. It does not request omitted paid font shards. The licensed Kit supplies all paid glyphs.
 
+## Proposed v1.1.3 enhancements
+
+- Dedicated Font Awesome 7 Free Solid (1,422), Regular (169), and Brands (572) icon libraries remain available with or without a Kit. Their independent Free font classes do not override Kit assets.
+- Kit-provided uploaded custom icons and custom Duotone appear in the Icon Library under **My Libraries** for the supported selected-style, subsetted and full SVG+JS Kit configurations.
+- The existing licensed Kit remains the source of all paid and uploaded SVG rendering; this plugin does not bundle paid SVGs, icons, credentials, or downloaded Kits.
+- The accepted Solutions QA3 installation demonstrated 37 family styles, two single-color custom icons, one custom Duotone icon and the three Free libraries together. Other independent Kit configurations require their own validation.
+- Very large custom-upload inventories, nonstandard layered SVGs, WordPress installations outside the tested environment, and native Hashe updating/opt-in installation reporting are not yet certified. This candidate is not a published stable release.
 ## Installation
 
 1. Back up the WordPress site and installed plugin.
