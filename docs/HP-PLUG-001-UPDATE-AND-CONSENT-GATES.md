@@ -2,7 +2,7 @@
 
 This file documents the proposed boundaries for the Hashe Font Awesome 7 Elementor update pilot.
 
-**Status: BLOCKED.** The server-side website phases and privacy/legal decisions are not implemented or approved. This document is not permission to deploy to \`plugins.hashe.com\`.
+**Status: BLOCKED.** HP-WEB-001 Phase 1 database foundation was completed separately on November 2; Phase 2 CSS was prepared in isolated staging but not deployed. The website update service (Phase 6), consent/reporting service (Phase 7), and privacy/legal decisions are not implemented or approved. This document is not permission to deploy to \`plugins.hashe.com\`.
 
 ## WordPress-side updater (proposed)
 
