@@ -15,6 +15,7 @@ $GLOBALS['filters']=array();$GLOBALS['actions']=array();$GLOBALS['styles']=array
 $GLOBALS['scripts']=array();$GLOBALS['transients']=array();$GLOBALS['options']=array();$GLOBALS['requests']=array();
 $GLOBALS['frontend']=false;
 function check($yes,$why){if(!$yes){fwrite(STDERR,"FAIL $why\n");exit(3);}}
+function plugin_basename($file){return 'hashe-fa7-elementor/hashe-fa7-elementor.php';}
 function add_filter($hook,$fn,$priority=10){$GLOBALS['filters'][$hook][]=array($priority,$fn);}
 function add_action($hook,$fn,$priority=10){$GLOBALS['actions'][$hook][]=array($priority,$fn);}
 function apply_filters($hook,$value){$f=$GLOBALS['filters'][$hook]??array();usort($f,function($a,$b){return $a[0]<=>$b[0];});foreach($f as $row)$value=call_user_func($row[1],$value);return $value;}

@@ -24,14 +24,11 @@ jobs:
           php -l hashe-fa7-elementor/includes/hashe-core/v1/update-client.php
       - name: Test Free, CSS Kits, full JS Kits, version, API fallback and license gates
         run: |
-          for scenario in no-kit invalid-kit css-small css-mixed full-pro full-plus css-stale css-api-offline; do
-            php tests/smoke.php "$scenario"
-          for scenario in full-plus-custom css-mixed-custom; do
+          for scenario in no-kit invalid-kit css-small css-mixed full-pro full-plus css-stale css-api-offline full-plus-custom css-mixed-custom; do
             php tests/smoke.php "$scenario"
           done
           php tests/custom-svg-classification.php
           php tests/hashe-update-client.test.php
-          done
   editor-storage:
     runs-on: ubuntu-latest
     steps:
