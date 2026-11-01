@@ -21,6 +21,7 @@ jobs:
           php -l hashe-fa7-elementor/includes/catalog-provider.php
           php -l hashe-fa7-elementor/includes/dynamic-family-provider.php
           php -l hashe-fa7-elementor/includes/custom-kit-icons.php
+          php -l hashe-fa7-elementor/includes/hashe-core/v1/update-client.php
       - name: Test Free, CSS Kits, full JS Kits, version, API fallback and license gates
         run: |
           for scenario in no-kit invalid-kit css-small css-mixed full-pro full-plus css-stale css-api-offline; do
@@ -29,6 +30,7 @@ jobs:
             php tests/smoke.php "$scenario"
           done
           php tests/custom-svg-classification.php
+          php tests/hashe-update-client.test.php
           done
   editor-storage:
     runs-on: ubuntu-latest

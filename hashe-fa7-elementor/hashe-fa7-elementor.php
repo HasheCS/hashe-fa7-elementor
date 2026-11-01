@@ -9,12 +9,20 @@
  * Author: Hashe Computer Solutions
  * Author URI: https://hashe.com/
  * License: GPL-2.0-or-later
+ * Update URI: https://plugins.hashe.com/hashe-fa7-elementor
  * Text Domain: hashe-fa7-elementor
  */
 defined( 'ABSPATH' ) || exit;
 require_once __DIR__ . '/includes/catalog-provider.php';
 require_once __DIR__ . '/includes/dynamic-family-provider.php';
 require_once __DIR__ . '/includes/custom-kit-icons.php';
+require_once __DIR__ . '/includes/hashe-core/v1/update-client.php';
+( new \Hashe\PluginTools\V1\UpdateClient(
+    'hashe-fa7-elementor',
+    plugin_basename( __FILE__ ),
+    'https://plugins.hashe.com/hashe-fa7-elementor',
+    'https://plugins.hashe.com/api/v1/updates/hashe-fa7-elementor'
+) )->register();
 
 /**
  * Register Kit-owned tabs through Elementor's additional_tabs API.
