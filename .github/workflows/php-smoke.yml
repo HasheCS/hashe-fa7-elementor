@@ -36,6 +36,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Release README and portable WordPress ZIP checks
+        run: python3 tests/release-artifact.test.py
       - name: Kit memory regression
         run: |
           node --check hashe-fa7-elementor/assets/js/editor-kit-memory.js
