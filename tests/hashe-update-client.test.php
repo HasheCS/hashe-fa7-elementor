@@ -91,6 +91,7 @@ qa_assert( ! isset( $result['autoupdate'] ), 'no forced automatic updates' );
 qa_assert( count( $GLOBALS['qa_http_calls'] ) === 1, 'one metadata request' );
 $req = $GLOBALS['qa_http_calls'][0];
 qa_assert( $req['url'] === $endpoint, 'no domain or installation ID added to update request' );
+qa_assert( $req['args']['user-agent'] === 'Hashe-Plugin-UpdateClient/1.0', 'metadata check suppresses default WordPress site-identifying user agent' );
 qa_assert( $req['args']['sslverify'] === true && $req['args']['redirection'] === 0, 'HTTPS transport and redirects constrained' );
 $result = $client->check( false, $headers, $slug . '/' . $slug . '.php', array() );
 qa_assert( count( $GLOBALS['qa_http_calls'] ) === 1, 'approved manifest cached' );

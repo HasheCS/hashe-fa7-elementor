@@ -50,6 +50,7 @@ if ( ! class_exists( __NAMESPACE__ . '\\UpdateClient', false ) ) {
                         'redirection'         => 0,
                         'sslverify'           => true,
                         'limit_response_size' => 32768,
+                        'user-agent'         => 'Hashe-Plugin-UpdateClient/1.0',
                         'headers'             => array( 'Accept' => 'application/json' ),
                     )
                 );
