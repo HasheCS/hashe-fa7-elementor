@@ -154,6 +154,9 @@ if ( ! class_exists( __NAMESPACE__ . '\\ConsentClient', false ) ) {
             }
             if ( 'allowed' === $status ) {
                 $this->form_button( 'revoke', 'Revoke permission and request deletion' );
+            } elseif ( 'revocation-pending' === $status ) {
+                echo '<p>' . esc_html( 'Optional reports have stopped. Server-side deletion has not yet been confirmed. Retry the deletion request when the reporting service is available.' ) . '</p>';
+                $this->form_button( 'retry-deletion', 'Retry deletion request' );
             } else {
                 if ( $contract ) {
                     echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
@@ -167,9 +170,6 @@ if ( ! class_exists( __NAMESPACE__ . '\\ConsentClient', false ) ) {
                     echo '</form>';
                 }
                 $this->form_button( 'skip', 'Skip / Continue without sharing' );
-                if ( 'revocation-pending' === $status ) {
-                    $this->form_button( 'retry-deletion', 'Retry deletion request' );
-                }
             }
             echo '</div>';
         }
@@ -184,13 +184,17 @@ if ( ! class_exists( __NAMESPACE__ . '\\ConsentClient', false ) ) {
             $prior = $this->preference();
             $now = time();
             if ( 'skip' === $choice ) {
-                wp_clear_scheduled_hook( $this->hook );
-                // Skipping is never treated as a revocation of an existing
-                // active server profile; it must follow the revoke path.
-                if ( 'allowed' !== ( $prior['status'] ?? '' ) ) {
-                    update_option( $this->option, array( 'status' => 'declined', 'at' => $now ), false );
+                // A stale or forged Skip request must never erase an active
+                // installation identity or an unfinished deletion request.
+                if ( in_array( $prior['status'] ?? '', array( 'allowed', 'revocation-pending' ), true ) ) {
+                    wp_die( esc_html( 'Use Revoke or Retry deletion before changing this privacy choice.' ), '', array( 'response' => 409 ) );
                 }
+                wp_clear_scheduled_hook( $this->hook );
+                update_option( $this->option, array( 'status' => 'declined', 'at' => $now ), false );
             } elseif ( 'allow' === $choice ) {
+                if ( 'revocation-pending' === ( $prior['status'] ?? '' ) ) {
+                    wp_die( esc_html( 'Complete the outstanding deletion request before enabling reporting again.' ), '', array( 'response' => 409 ) );
+                }
                 $contract = $this->contract();
                 $explicit = isset( $_POST['hashe_fa7_explicit_consent'] ) &&
                     is_string( $_POST['hashe_fa7_explicit_consent'] )

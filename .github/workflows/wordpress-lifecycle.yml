@@ -124,6 +124,23 @@ jobs:
             php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-native-update-simulation.php" --path="$WP_ROOT"
           fi
 
+          if [[ "$QA_PHP" == '8.2' && "$QA_INSTALL" == 'clean' ]]; then
+            for stage in default skip skipped allow report offline revoke-fail pending; do
+              HASHE_QA_CONSENT_STAGE="$stage" php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-consent-live-integration.php" --path="$WP_ROOT"
+            done
+            if HASHE_QA_CONSENT_STAGE=skip-pending php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-consent-live-integration.php" --path="$WP_ROOT"; then
+              echo 'ERROR: Pending deletion accepted stale Skip'
+              exit 7
+            fi
+            if HASHE_QA_CONSENT_STAGE=allow-pending php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-consent-live-integration.php" --path="$WP_ROOT"; then
+              echo 'ERROR: Pending deletion accepted stale Allow'
+              exit 8
+            fi
+            for stage in pending-persisted retry revoked; do
+              HASHE_QA_CONSENT_STAGE="$stage" php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-consent-live-integration.php" --path="$WP_ROOT"
+            done
+            echo 'WORDPRESS_REAL_CONSENT_AND_REVOCATION_FLOW=PASS'
+          fi
           php "$WP_BIN" plugin deactivate hashe-fa7-elementor --path="$WP_ROOT"
           php "$WP_BIN" plugin uninstall hashe-fa7-elementor --path="$WP_ROOT"
           if php "$WP_BIN" plugin is-installed hashe-fa7-elementor --path="$WP_ROOT"; then exit 4; fi
