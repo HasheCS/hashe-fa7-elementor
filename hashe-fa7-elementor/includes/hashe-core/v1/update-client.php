@@ -25,6 +25,7 @@ if ( ! class_exists( __NAMESPACE__ . '\\UpdateClient', false ) ) {
 
         public function register() {
             add_filter( 'update_plugins_plugins.hashe.com', array( $this, 'check' ), 10, 4 );
+            add_filter( 'upgrader_pre_download', array( $this, 'verify_download' ), 10, 4 );
         }
 
         /** Return false instead of interfering with WordPress on any error. */
@@ -80,8 +81,59 @@ if ( ! class_exists( __NAMESPACE__ . '\\UpdateClient', false ) ) {
                 'package'      => $manifest['package_url'],
                 'tested'       => $manifest['tested'],
                 'requires_php' => $manifest['requires_php'],
-                'autoupdate'   => false,
             );
+        }
+
+
+        /**
+         * Verify the exact published GitHub ZIP against the approved feed
+         * before WordPress unpacks or executes it. Only this plugin is touched.
+         *
+         * WP_Upgrader::download_package() accepts a temporary ZIP path
+         * returned by upgrader_pre_download.
+         */
+        public function verify_download( $reply, $package, $upgrader, $hook_extra ) {
+            if ( false !== $reply ||
+                ! is_array( $hook_extra ) ||
+                ( $hook_extra['plugin'] ?? '' ) !== $this->plugin_file ) {
+                return $reply;
+            }
+            $manifest = get_site_transient( 'hashe_v1_update_' . $this->slug );
+            if ( ! is_array( $manifest ) ||
+                ! $this->valid_manifest( $manifest ) ||
+                $package !== $manifest['package_url'] ) {
+                return new \WP_Error(
+                    'hashe_fa7_unverified_update',
+                    'The approved Hashe update metadata is unavailable or does not match this package.'
+                );
+            }
+
+            if ( ! function_exists( 'download_url' ) ) {
+                return new \WP_Error(
+                    'hashe_fa7_download_unavailable',
+                    'WordPress download_url is not available for this update.'
+                );
+            }
+            $temporary = download_url( $package, 300 );
+            if ( is_wp_error( $temporary ) ) {
+                return $temporary;
+            }
+            if ( ! is_string( $temporary ) || ! is_file( $temporary ) ) {
+                return new \WP_Error(
+                    'hashe_fa7_missing_zip',
+                    'The update ZIP was not downloaded to a readable local file.'
+                );
+            }
+            $digest = hash_file( 'sha256', $temporary );
+            if ( ! is_string( $digest ) ||
+                ! hash_equals( $manifest['sha256'], $digest ) ) {
+                wp_delete_file( $temporary );
+                return new \WP_Error(
+                    'hashe_fa7_checksum_failed',
+                    'The update ZIP did not match the approved SHA-256 checksum.'
+                );
+            }
+            return $temporary;
         }
 
         private function valid_manifest( $m ) {
