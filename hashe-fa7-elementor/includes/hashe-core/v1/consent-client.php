@@ -84,7 +84,7 @@ if ( ! class_exists( __NAMESPACE__ . '\\ConsentClient', false ) ) {
             if ( ! is_callable( $c['authenticated_headers'] ) ||
                 ! preg_match( '/^[A-Za-z0-9._-]{1,32}$/D', $c['version'] ) ||
                 strlen( $c['retention'] ) > 300 ||
-                strlen( $c['cadence'] ) > 200 ) {
+                strlen( $c['cadence'] ) > 200 || 'Every 30 days' !== $c['cadence'] ) {
                 return false;
             }
             $allowed = array(
@@ -192,8 +192,10 @@ if ( ! class_exists( __NAMESPACE__ . '\\ConsentClient', false ) ) {
                 }
             } elseif ( 'allow' === $choice ) {
                 $contract = $this->contract();
-                if ( ! $contract || ! isset( $_POST['hashe_fa7_explicit_consent'] ) || ! is_string( $_POST['hashe_fa7_explicit_consent'] ) ||
-                    '1' !== (string) wp_unslash( $_POST['hashe_fa7_explicit_consent'] ) ) {
+                $explicit = isset( $_POST['hashe_fa7_explicit_consent'] ) &&
+                    is_string( $_POST['hashe_fa7_explicit_consent'] )
+                    ? sanitize_text_field( wp_unslash( $_POST['hashe_fa7_explicit_consent'] ) ) : '';
+                if ( ! $contract || '1' !== $explicit ) {
                     wp_die( esc_html( 'Reporting cannot be enabled without the approved disclosure and explicit opt-in.' ), '', array( 'response' => 400 ) );
                 }
                 $identity = ( 'allowed' === ( $prior['status'] ?? '' ) )
