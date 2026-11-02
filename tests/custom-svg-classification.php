@@ -1,5 +1,5 @@
 <?php
-define('HASHE_FA7_CUSTOM_FIXTURE',true);
+define('ABSPATH', __DIR__);
 require dirname(__DIR__).'/hashe-fa7-elementor/includes/custom-kit-icons.php';
 $mono='<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0h5v5z"/></svg>';
 $duo='<svg xmlns="http://www.w3.org/2000/svg"><path opacity=".4" d="M0 0h5v5z"/><path d="M1 1h3v3z"/></svg>';

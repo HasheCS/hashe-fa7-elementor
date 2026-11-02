@@ -4,7 +4,9 @@
  * No private API token, downloaded paid assets or Elementor modifications.
  * FAIL-CLOSED: not wired into the plugin until tested against a real custom Kit.
  */
-defined('ABSPATH') || defined('HASHE_FA7_CUSTOM_FIXTURE') || exit;
+if ( ! defined( 'ABSPATH' ) ) {
+    exit;
+}
 
 function hashe_fa7_custom_icons_from_kit_css($css) {
     $empty = array('fak' => array(), 'fakd' => array());
