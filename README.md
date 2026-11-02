@@ -16,6 +16,8 @@ The integration never copies or redistributes paid Font Awesome fonts, SVGs, pai
 
 ## Proposed v1.1.3 enhancements
 
+Compatibility: WordPress 6.8 or newer (matching Elementor 4.3.5); PHP 7.4 or newer.
+
 - Dedicated Font Awesome 7 Free Solid (1,422), Regular (169), and Brands (572) icon libraries remain available with or without a Kit. Their independent Free font classes do not override Kit assets.
 - Kit-provided uploaded custom icons and custom Duotone appear in the Icon Library under **My Libraries** for the supported selected-style, subsetted and full SVG+JS Kit configurations.
 - The existing licensed Kit remains the source of all paid and uploaded SVG rendering; this plugin does not bundle paid SVGs, icons, credentials, or downloaded Kits.

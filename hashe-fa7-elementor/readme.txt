@@ -1,7 +1,7 @@
 === Hashe Font Awesome 7 Icon Library for Elementor ===
 Contributors: Hashe Computer Solutions
 Tags: elementor, icons, font-awesome, icon-library
-Requires at least: 6.2
+Requires at least: 6.8
 Tested up to: 7.1
 Requires PHP: 7.4
 Requires Plugins: elementor
@@ -42,6 +42,7 @@ Regular, Solid, and Brands are Elementor's native baseline. When a selected-styl
 == Changelog ==
 
 = 1.1.3 =
+* Minimum WordPress 6.8 is aligned with Elementor 4.3.5 dependency requirements; PHP 7.4 remains the declared floor.
 * Always expose the complete bundled Font Awesome 7 Free Solid, Regular, and Brands catalogs alongside any configured Kit, with isolated Free font classes to prevent licensed-Kit conflicts.
 * Discover Kit-owned custom icons and custom Duotone icons under My Libraries for subsetted CSS/JS and full SVG+JS Kits, using only the current customer's published Kit assets.
 * Preserve all 37 licensed family-styles on a full Pro Plus Kit, without bundling or redistributing paid glyphs.
