@@ -1,0 +1,96 @@
+name: Isolated WordPress lifecycle
+on:
+  push:
+    branches: [release/v1.1.3-candidate]
+  pull_request:
+  workflow_dispatch:
+jobs:
+  wordpress-lifecycle:
+    name: "WP PHP ${{ matrix.php }} / ${{ matrix.install }}"
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        php: ['8.2', '8.3']
+        install: ['clean', 'upgrade-v1.1.2']
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: qa_password_only
+          MYSQL_DATABASE: hashe_fa7_qa
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -pqa_password_only"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          extensions: mbstring, mysqli, curl, dom, zip, openssl
+          tools: none
+          coverage: none
+      - name: Download and initialize isolated WordPress
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$RUNNER_TEMP/wp-cli.phar"
+          echo "WP_BIN=$RUNNER_TEMP/wp-cli.phar" >> "$GITHUB_ENV"
+          echo "WP_ROOT=$RUNNER_TEMP/wordpress" >> "$GITHUB_ENV"
+          php "$RUNNER_TEMP/wp-cli.phar" core download --path="$RUNNER_TEMP/wordpress"
+          php "$RUNNER_TEMP/wp-cli.phar" config create --path="$RUNNER_TEMP/wordpress" --dbname=hashe_fa7_qa --dbuser=root --dbpass=qa_password_only --dbhost=127.0.0.1 --skip-check
+          php "$RUNNER_TEMP/wp-cli.phar" core install --path="$RUNNER_TEMP/wordpress" --url='http://localhost:8080' --title='Ephemeral Plugin QA' --admin_user=qa_admin --admin_password=qa_dummy_only --admin_email=qa@example.invalid --skip-email
+          php "$RUNNER_TEMP/wp-cli.phar" plugin install elementor --activate --version=4.3.5 --path="$RUNNER_TEMP/wordpress"
+      - name: Package candidate from this exact commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tests/release-artifact.test.py
+          python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile, ZIP_DEFLATED
+          import os
+          root = Path('hashe-fa7-elementor')
+          dest = Path(os.environ['RUNNER_TEMP']) / 'hashe-fa7-elementor-v1.1.3-candidate.zip'
+          with ZipFile(dest, 'w', ZIP_DEFLATED) as archive:
+              for file in sorted(root.rglob('*')):
+                  if file.is_file():
+                      archive.write(file, arcname=(Path('hashe-fa7-elementor') / file.relative_to(root)).as_posix())
+          with ZipFile(dest) as archive:
+              assert archive.testzip() is None
+              assert len(archive.namelist()) == 19
+          print('EPHEMERAL_ZIP_OK=' + str(dest))
+          PY
+      - name: Install or upgrade and preserve original settings
+        env:
+          INSTALL_CASE: ${{ matrix.install }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$INSTALL_CASE" == 'upgrade-v1.1.2' ]]; then
+            curl -fsSL https://github.com/HasheCS/hashe-fa7-elementor/releases/download/v1.1.2/hashe-fa7-elementor-v1.1.2.zip -o "$RUNNER_TEMP/previous.zip"
+            echo 'bbd2b856d3a823bde3ad9c2bb431482763d4567b72cb3079a841ea77b3aca24e  '"$RUNNER_TEMP/previous.zip" | sha256sum --check -
+            php "$WP_BIN" plugin install "$RUNNER_TEMP/previous.zip" --activate --path="$WP_ROOT"
+            [[ "$(php "$WP_BIN" plugin get hashe-fa7-elementor --field=version --path="$WP_ROOT")" == '1.1.2' ]]
+            php "$WP_BIN" option update elementor_font_awesome_pro_kit_id not-a-kit --path="$WP_ROOT"
+          fi
+          php "$WP_BIN" plugin install "$RUNNER_TEMP/hashe-fa7-elementor-v1.1.3-candidate.zip" --activate --force --path="$WP_ROOT"
+          [[ "$(php "$WP_BIN" plugin get hashe-fa7-elementor --field=version --path="$WP_ROOT")" == '1.1.3' ]]
+          if [[ "$INSTALL_CASE" == 'upgrade-v1.1.2' ]]; then
+            [[ "$(php "$WP_BIN" option get elementor_font_awesome_pro_kit_id --path="$WP_ROOT")" == 'not-a-kit' ]]
+          fi
+      - name: Check native WordPress behavior, offline independence and lifecycle
+        shell: bash
+        run: |
+          set -euo pipefail
+          php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-live-integration.php" --path="$WP_ROOT"
+          php "$WP_BIN" plugin deactivate hashe-fa7-elementor --path="$WP_ROOT"
+          php "$WP_BIN" plugin activate hashe-fa7-elementor --path="$WP_ROOT"
+          php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-live-integration.php" --path="$WP_ROOT"
+          php "$WP_BIN" plugin deactivate hashe-fa7-elementor --path="$WP_ROOT"
+          php "$WP_BIN" plugin uninstall hashe-fa7-elementor --path="$WP_ROOT"
+          if php "$WP_BIN" plugin is-installed hashe-fa7-elementor --path="$WP_ROOT"; then exit 4; fi
+          echo 'CLEAN_INSTALL_UPGRADE_DEACTIVATE_REACTIVATE_UNINSTALL=PASS'
