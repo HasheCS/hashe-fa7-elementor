@@ -16,11 +16,10 @@ The integration never copies or redistributes paid Font Awesome fonts, SVGs, pai
 
 ## Installation
 
-1. Back up the WordPress site and installed plugin.
-2. Download the **installable `hashe-fa7-elementor-v1.1.2.zip` release asset** from [GitHub Releases](https://github.com/HasheCS/hashe-fa7-elementor/releases/tag/v1.1.2). Do not install GitHub's automatically generated source ZIP.
-3. WordPress: **Plugins > Add New Plugin > Upload Plugin**. Install/replace and activate.
-4. For Free use, leave the Kit field in Elementor Pro integrations empty. To use Pro/Pro Plus, add your own licensed Font Awesome Kit ID.
-5. Reopen or hard-refresh Elementor after changes. Test selection, saving and frontend rendering.
+1. Download the **installable `hashe-fa7-elementor-v1.1.2.zip` release asset** from [GitHub Releases](https://github.com/HasheCS/hashe-fa7-elementor/releases/tag/v1.1.2). Do not install GitHub's automatically generated source ZIP.
+2. WordPress: **Plugins > Add New Plugin > Upload Plugin**. Install/replace and activate.
+3. For Free use, leave the Kit field in Elementor Pro integrations empty. To use Pro/Pro Plus, add your own licensed Font Awesome Kit ID.
+4. Reopen or hard-refresh Elementor after changes. Test selection, saving and frontend rendering.
 
 ## Verification
 
