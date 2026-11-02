@@ -25,11 +25,10 @@ Compatibility: WordPress 6.8 or newer (matching Elementor 4.3.5); PHP 7.4 or new
 - Very large custom-upload inventories, nonstandard layered SVGs, WordPress installations outside the tested environment, and native Hashe updating/opt-in installation reporting are not yet certified. This candidate is not a published stable release.
 ## Installation
 
-1. Back up the WordPress site and installed plugin.
-2. Download the **installable `hashe-fa7-elementor-v1.1.2.zip` release asset** from [GitHub Releases](https://github.com/HasheCS/hashe-fa7-elementor/releases/tag/v1.1.2). Do not install GitHub's automatically generated source ZIP.
-3. WordPress: **Plugins > Add New Plugin > Upload Plugin**. Install/replace and activate.
-4. For Free use, leave the Kit field in Elementor Pro integrations empty. To use Pro/Pro Plus, add your own licensed Font Awesome Kit ID.
-5. Reopen or hard-refresh Elementor after changes. Test selection, saving and frontend rendering.
+1. Download the **installable plugin ZIP** from [GitHub Releases](https://github.com/HasheCS/hashe-fa7-elementor/releases/latest). Select the release ZIP asset, not GitHub's automatic source-code ZIP.
+2. In WordPress, open **Plugins > Add New Plugin > Upload Plugin**, choose the ZIP, then install and activate.
+3. **Free icons work without a Kit.** For Pro or Pro Plus icons, configure your own licensed Font Awesome Kit ID in Elementor Pro.
+4. Open Elementor, select an icon, and save your page.
 
 ## Verification
 

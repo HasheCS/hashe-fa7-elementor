@@ -16,10 +16,16 @@ version = vh.group(1)
 assert re.search(r"(?m)^= " + re.escape(version) + r" =$", readme), "Missing release changelog"
 assert main.startswith("<?php"), "WordPress main plugin file missing PHP entry"
 assert "Update URI: https://plugins.hashe.com/hashe-fa7-elementor" in main
-installation = readme.split("== Installation ==", 1)[1].split("== Frequently Asked Questions ==", 1)[0]
-steps = re.findall(r"(?m)^([1-5])\. (.+)$", installation)
-assert [int(n) for n, _ in steps] == [1, 2, 3, 4, 5], "Incomplete numbered installation instructions"
-assert "GitHub release" in steps[1][1] and "ZIP" in steps[1][1], "Missing correct ZIP download guidance"
+installation = readme.split("== Installation ==", 1)[1].split("== Privacy and optional reporting ==", 1)[0]
+steps = re.findall(r"(?m)^([1-4])\. (.+)$", installation)
+assert [int(n) for n, _ in steps] == [1, 2, 3, 4], "Incomplete numbered installation instructions"
+assert "GitHub release" in steps[0][1] and "ZIP" in steps[0][1], "Missing correct ZIP download guidance"
+assert "back up" not in installation.lower() and "backup" not in installation.lower(), "Installation must not suggest full-site backups"
+github_readme = (repo / "README.md").read_text(encoding="utf-8")
+github_installation = github_readme.split("## Installation", 1)[1].split("## Verification", 1)[0]
+github_steps = re.findall(r"(?m)^([1-4])\. (.+)$", github_installation)
+assert [int(n) for n, _ in github_steps] == [1, 2, 3, 4], "GitHub instructions must be simple and numbered"
+assert "backup" not in github_installation.lower() and "back up" not in github_installation.lower(), "GitHub instructions must not suggest full-site backups"
 assert "+'s automatic" not in readme, "Damaged old installation instruction"
 
 files = sorted(p for p in plugin.rglob("*") if p.is_file())

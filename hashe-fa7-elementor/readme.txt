@@ -25,11 +25,10 @@ No paid font binaries, SVG glyphs, licensed Pro stylesheets, or copied Pro icon 
 
 == Installation ==
 
-1. Back up the WordPress site and current plugin.
-2. Download the installable plugin ZIP asset from the approved stable GitHub release, not GitHub's automatic repository source ZIP.
-3. In WordPress select Plugins > Add New > Upload Plugin, install/replace, and activate.
-4. Leave Elementor Pro's Font Awesome Kit ID empty for Free mode, or provide your own licensed Font Awesome Kit ID.
-5. Reopen Elementor after Kit changes. Verify native and additional libraries, then save and reload an icon widget.
+1. Download the installable plugin ZIP from the latest GitHub release, not GitHub's automatically generated source ZIP.
+2. In WordPress, go to Plugins > Add New Plugin > Upload Plugin, choose the ZIP, then install and activate.
+3. For Free icons, no Font Awesome Kit is needed. To use Pro or Pro Plus, configure your own licensed Font Awesome Kit ID in Elementor Pro.
+4. Open Elementor, select an icon from the library, and save your page.
 
 == Privacy and optional reporting ==
 
