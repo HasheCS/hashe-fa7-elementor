@@ -31,6 +31,10 @@ No paid font binaries, SVG glyphs, licensed Pro stylesheets, or copied Pro icon 
 4. Leave Elementor Pro's Font Awesome Kit ID empty for Free mode, or provide your own licensed Font Awesome Kit ID.
 5. Reopen Elementor after Kit changes. Verify native and additional libraries, then save and reload an icon widget.
 
+== Privacy and optional reporting ==
+
+Icon libraries, licensed Font Awesome Kit features, and WordPress update checks do not require optional analytics. The plugin does not send installation reports without your affirmative, administrator-authorized opt-in. Go to Settings > Hashe FA7 Privacy to review status or choose Skip. Where no reviewed, operational reporting contract and privacy policy are installed, optional reporting cannot be enabled and the Allow action is unavailable. A failed reporting service never blocks icon selection or stable updates. Normal WordPress update checks use HTTPS and may be present in service access logs even when optional reporting is declined. If reporting is enabled in a future approved integration, a site administrator can revoke it at any time; any incomplete remote deletion request is shown as pending, not falsely declared successful.
+
 == Frequently Asked Questions ==
 
 = Does the plugin include Pro Plus fonts? =
@@ -42,6 +46,7 @@ Regular, Solid, and Brands are Elementor's native baseline. When a selected-styl
 == Changelog ==
 
 = 1.1.3 =
+* Add the separated WordPress native updater with approved GitHub ZIP SHA-256 verification and an administrator-only, default-off optional installation-reporting consent interface. Reporting cannot be enabled until its service contract and privacy terms have been approved.
 * Minimum WordPress 6.8 is aligned with Elementor 4.3.5 dependency requirements; PHP 7.4 remains the declared floor.
 * Always expose the complete bundled Font Awesome 7 Free Solid, Regular, and Brands catalogs alongside any configured Kit, with isolated Free font classes to prevent licensed-Kit conflicts.
 * Discover Kit-owned custom icons and custom Duotone icons under My Libraries for subsetted CSS/JS and full SVG+JS Kits, using only the current customer's published Kit assets.

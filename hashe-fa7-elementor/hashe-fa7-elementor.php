@@ -17,6 +17,16 @@ require_once __DIR__ . '/includes/catalog-provider.php';
 require_once __DIR__ . '/includes/dynamic-family-provider.php';
 require_once __DIR__ . '/includes/custom-kit-icons.php';
 require_once __DIR__ . '/includes/hashe-core/v1/update-client.php';
+require_once __DIR__ . '/includes/hashe-core/v1/consent-client.php';
+( new HashePluginToolsV1ConsentClient(
+    'hashe-fa7-elementor',
+    plugin_basename( __FILE__ )
+) )->register();
+if ( function_exists( 'register_activation_hook' ) ) {
+    register_activation_hook( __FILE__, array( 'HashePluginToolsV1ConsentClient', 'on_activation' ) );
+    register_deactivation_hook( __FILE__, array( 'HashePluginToolsV1ConsentClient', 'on_deactivation' ) );
+    register_uninstall_hook( __FILE__, array( 'HashePluginToolsV1ConsentClient', 'on_uninstall' ) );
+}
 ( new \Hashe\PluginTools\V1\UpdateClient(
     'hashe-fa7-elementor',
     plugin_basename( __FILE__ ),

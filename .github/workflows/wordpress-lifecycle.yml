@@ -61,7 +61,7 @@ jobs:
                       archive.write(file, arcname=(Path('hashe-fa7-elementor') / file.relative_to(root)).as_posix())
           with ZipFile(dest) as archive:
               assert archive.testzip() is None
-              assert len(archive.namelist()) == 19
+              assert len(archive.namelist()) == 20
           print('EPHEMERAL_ZIP_OK=' + str(dest))
           PY
       - name: Install or upgrade and preserve original settings
