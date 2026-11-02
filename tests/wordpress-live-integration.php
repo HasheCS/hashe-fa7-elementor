@@ -71,6 +71,20 @@ if ( is_array( $privacy ) && 'allowed' === ( $privacy['status'] ?? '' ) ) {
 if ( wp_next_scheduled( 'hashe_fa7_optional_reporting_tick' ) ) {
     WP_CLI::error( 'Unconsented optional reporting scheduled during install/upgrade' );
 }
+wp_set_current_user( 1 );
+require_once ABSPATH . 'wp-admin/includes/template.php';
+$privacy_client = new \Hashe\PluginTools\V1\ConsentClient(
+    'hashe-fa7-elementor',
+    'hashe-fa7-elementor/hashe-fa7-elementor.php'
+);
+ob_start();
+$privacy_client->settings_page();
+$privacy_html = ob_get_clean();
+if ( false === strpos( $privacy_html, 'Skip / Continue without sharing' ) ||
+    false !== strpos( $privacy_html, 'Allow &amp; Continue' ) ||
+    false !== strpos( $privacy_html, 'Allow & Continue' ) ) {
+    WP_CLI::error( 'Default-off privacy UI did not show Skip or improperly enabled Allow' );
+}
 if ( has_filter( 'update_plugins_plugins.hashe.com' ) === false ) {
     WP_CLI::error( 'Native updater hook not registered' );
 }
@@ -102,5 +116,6 @@ echo "FREE_LIBRARIES=3" . PHP_EOL;
 echo "LEGACY_RENDER=PASS" . PHP_EOL;
 echo "NATIVE_UPDATE_HOOK=PASS" . PHP_EOL;
 echo "OPTIONAL_REPORTING_DEFAULT_OFF=PASS" . PHP_EOL;
+echo "ADMIN_PRIVACY_SKIP_AND_CONTRACT_GATE=PASS" . PHP_EOL;
 echo "NO_SERVICE_DEPENDENCY=PASS" . PHP_EOL;
 echo "ISOLATED_WORDPRESS_INTEGRATION=PASS" . PHP_EOL;
