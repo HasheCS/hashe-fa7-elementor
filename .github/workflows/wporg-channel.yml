@@ -71,8 +71,9 @@ jobs:
             $WP eval-file "$GITHUB_WORKSPACE/tests/wordpress-wporg-channel.php" --path="$ROOT"
             echo "STAGE=OFFICIAL_WORDPRESS_PLUGIN_CHECK"
             $WP plugin install plugin-check --activate --path="$ROOT"
-            $WP plugin check hashe-fa7-elementor --format=table --path="$ROOT"
-            echo "PLUGIN_CHECK=PASS"
+            echo "PLUGIN_CHECK_TARGET=$ROOT/wp-content/plugins/hashe-fa7-elementor"
+            $WP plugin check "$ROOT/wp-content/plugins/hashe-fa7-elementor" --format=strict-table --path="$ROOT"
+            echo "PLUGIN_CHECK_STRICT=PASS"
             $WP plugin deactivate hashe-fa7-elementor --path="$ROOT"
             $WP plugin uninstall hashe-fa7-elementor --path="$ROOT"
             if $WP plugin is-installed hashe-fa7-elementor --path="$ROOT"; then
