@@ -1,0 +1,79 @@
+name: WordPress.org channel isolated acceptance
+on:
+  push:
+    branches: [release/v1.1.3-candidate]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  wporg-install:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TERM: xterm
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: qa_password_only
+          MYSQL_DATABASE: fa7_wporg_qa
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -pqa_password_only"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, curl, dom, mbstring, zip, openssl
+          tools: none
+      - name: Build candidate and verify WordPress.org channel
+        shell: bash
+        run: |
+          ( clear
+            set -euo pipefail
+            echo 'STAGE=BUILD_VERIFIED_DIRECTORY_ZIP'
+            python3 tools/build_fa7_candidate.py --output "$RUNNER_TEMP/dist"
+            (cd "$RUNNER_TEMP/dist" && sha256sum --check SHA256SUMS.txt)
+            python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+          import os
+          package = Path(os.environ['RUNNER_TEMP']) / 'dist/hashe-fa7-elementor-v1.1.3-wporg-development.zip'
+          with ZipFile(package) as z:
+              main = z.read('hashe-fa7-elementor/hashe-fa7-elementor.php').decode()
+              assert 'Update URI:' not in main
+              assert 'UpdateClient' not in main
+              assert 'ConsentClient' in main
+              assert not any('update-client.php' in n for n in z.namelist())
+              assert len(z.namelist()) == 19
+          print('WORDPRESS_ORG_CHANNEL_ZIP_GATES=PASS')
+          PY
+            echo 'STAGE_EXIT=0'
+          )
+      - name: Install in disposable WordPress and check default-off behavior
+        shell: bash
+        run: |
+          ( clear
+            set -euo pipefail
+            echo 'STAGE=DISPOSABLE_WORDPRESS_INSTALL'
+            curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$RUNNER_TEMP/wp-cli.phar"
+            WP="php $RUNNER_TEMP/wp-cli.phar"
+            ROOT="$RUNNER_TEMP/wordpress"
+            $WP core download --path="$ROOT" --version=7.1.4
+            $WP config create --path="$ROOT" --dbname=fa7_wporg_qa --dbuser=root --dbpass=qa_password_only --dbhost=127.0.0.1 --skip-check
+            $WP core install --path="$ROOT" --url='http://localhost:8080' --title='FA7 WP.org QA' --admin_user=qa_admin --admin_password=qa_dummy_only --admin_email=qa@example.invalid --skip-email
+            $WP plugin install elementor --activate --version=4.3.5 --path="$ROOT"
+            $WP plugin install "$RUNNER_TEMP/dist/hashe-fa7-elementor-v1.1.3-wporg-development.zip" --activate --path="$ROOT"
+            $WP eval-file "$GITHUB_WORKSPACE/tests/wordpress-wporg-channel.php" --path="$ROOT"
+            $WP plugin deactivate hashe-fa7-elementor --path="$ROOT"
+            $WP plugin uninstall hashe-fa7-elementor --path="$ROOT"
+            if $WP plugin is-installed hashe-fa7-elementor --path="$ROOT"; then
+              echo 'UNINSTALL_FAILED'; exit 9
+            fi
+            echo 'WORDPRESS_ORG_ISOLATED_INSTALL_UNINSTALL=PASS'
+            echo 'STAGE_EXIT=0'
+          )
