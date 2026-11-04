@@ -69,6 +69,10 @@ jobs:
             $WP plugin install elementor --activate --version=4.3.5 --path="$ROOT"
             $WP plugin install "$RUNNER_TEMP/dist/hashe-fa7-elementor-v1.1.3-wporg-development.zip" --activate --path="$ROOT"
             $WP eval-file "$GITHUB_WORKSPACE/tests/wordpress-wporg-channel.php" --path="$ROOT"
+            echo "STAGE=OFFICIAL_WORDPRESS_PLUGIN_CHECK"
+            $WP plugin install plugin-check --activate --path="$ROOT"
+            $WP plugin check hashe-fa7-elementor --format=table --path="$ROOT"
+            echo "PLUGIN_CHECK=PASS"
             $WP plugin deactivate hashe-fa7-elementor --path="$ROOT"
             $WP plugin uninstall hashe-fa7-elementor --path="$ROOT"
             if $WP plugin is-installed hashe-fa7-elementor --path="$ROOT"; then
