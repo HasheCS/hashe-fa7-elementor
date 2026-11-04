@@ -13,7 +13,7 @@ $stage = getenv( 'HASHE_QA_CONSENT_STAGE' );
 $option = 'hashe_fa7_optional_reporting_v1';
 $hook = 'hashe_fa7_optional_reporting_tick';
 $slug = 'hashe-fa7-elementor';
-$client = new \Hashe\PluginTools\V1\ConsentClient(
+$client = new \Hashe\FA7\PluginTools\V1\ConsentClient(
     $slug, 'hashe-fa7-elementor/hashe-fa7-elementor.php'
 );
 wp_set_current_user( 1 );

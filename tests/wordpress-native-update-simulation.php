@@ -38,6 +38,12 @@ $manifest = array(
     'tested' => '7.1',
     'requires_php' => '7.4',
 );
+$manifest['schema_version'] = 1;
+$manifest['plugin'] = $base;
+$manifest['new_version'] = $manifest['version'];
+$manifest['requires'] = '6.8';
+$manifest['requires_wordpress'] = '6.8';
+$manifest['release'] = array( 'tag' => $manifest['tag'], 'asset_url' => $manifest['package_url'], 'sha256' => $manifest['sha256'] );
 $sha = $manifest['sha256'];
 $checked = 0;
 $metadata_requests = 0;
@@ -88,6 +94,7 @@ $args = array(
 );
 $before_hash = hash_file( 'sha256', $installed_file );
 $manifest['sha256'] = str_repeat( 'f', 64 );
+$manifest['release']['sha256'] = $manifest['sha256'];
 set_site_transient( 'hashe_v1_update_' . $base, $manifest, 900 );
 $failed = $upgrader->run( $args );
 if ( ! is_wp_error( $failed ) ||
@@ -101,6 +108,7 @@ if ( ! file_exists( $installed_file ) ||
 echo "WP_CORE_REJECTS_BAD_CHECKSUM=PASS\n";
 
 $manifest['sha256'] = $sha;
+$manifest['release']['sha256'] = $sha;
 set_site_transient( 'hashe_v1_update_' . $base, $manifest, 900 );
 $upgrader2 = new Plugin_Upgrader( new WP_Upgrader_Skin() );
 $success = $upgrader2->run( $args );

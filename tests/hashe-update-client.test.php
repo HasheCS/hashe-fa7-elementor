@@ -75,9 +75,15 @@ $manifest = array(
     'tested' => '7.1',
     'requires_php' => '7.4',
 );
+$manifest['schema_version'] = 1;
+$manifest['plugin'] = $slug;
+$manifest['new_version'] = $ver;
+$manifest['requires'] = '6.8';
+$manifest['requires_wordpress'] = '6.8';
+$manifest['release'] = array( 'tag' => $manifest['tag'], 'asset_url' => $manifest['package_url'], 'sha256' => $manifest['sha256'] );
 $client_file = dirname( __DIR__ ) . '/hashe-fa7-elementor/includes/hashe-core/v1/update-client.php';
 require $client_file;
-$client = new \Hashe\PluginTools\V1\UpdateClient(
+$client = new \Hashe\FA7\PluginTools\V1\UpdateClient(
     $slug, $slug . '/' . $slug . '.php', $uri, $endpoint
 );
 $client->register();
@@ -87,6 +93,7 @@ qa_reset( array( 'code' => 200, 'body' => json_encode( $manifest ) ) );
 $result = $client->check( false, $headers, $slug . '/' . $slug . '.php', array( 'en_US' ) );
 qa_assert( is_array( $result ) && $result['version'] === $ver, 'approved stable update offered' );
 qa_assert( $result['package'] === $manifest['package_url'], 'exact approved GitHub release asset offered' );
+qa_assert( $result['requires'] === '6.8', 'verified WordPress minimum propagated' );
 qa_assert( ! isset( $result['autoupdate'] ), 'no forced automatic updates' );
 qa_assert( count( $GLOBALS['qa_http_calls'] ) === 1, 'one metadata request' );
 $req = $GLOBALS['qa_http_calls'][0];
@@ -98,6 +105,11 @@ qa_assert( count( $GLOBALS['qa_http_calls'] ) === 1, 'approved manifest cached' 
 qa_assert( $client->check( false, array( 'UpdateURI' => $uri, 'Version' => $ver ), $slug . '/' . $slug . '.php', array() ) === false, 'installed latest version not offered' );
 qa_assert( $client->check( 'unmodified', $headers, 'other-plugin/plugin.php', array() ) === 'unmodified', 'no interference with other plugins' );
 foreach ( array(
+    'wrong_schema' => array( 'schema_version' => 2 ),
+    'wrong_plugin' => array( 'plugin' => 'other-plugin' ),
+    'wp_minimum_mismatch' => array( 'requires' => '7.0' ),
+    'missing_wp_minimum' => array( 'requires' => '', 'requires_wordpress' => '' ),
+    'mismatched_release_asset' => array( 'release' => array( 'tag' => $manifest['tag'], 'asset_url' => 'https://other-host.example/fake.zip', 'sha256' => $manifest['sha256'] ) ),
     'unapproved' => array( 'approved' => false ),
     'prerelease' => array( 'prerelease' => true ),
     'wrong_slug' => array( 'slug' => 'wrong' ),
@@ -124,6 +136,7 @@ unlink( $verified );
 qa_assert( $client->verify_download( false, $manifest['package_url'], null, array( 'plugin' => 'other/plugin.php' ) ) === false, 'unrelated plugin packages untouched' );
 qa_assert( $client->verify_download( 'already-handled', $manifest['package_url'], null, $extra ) === 'already-handled', 'existing updater override respected' );
 $GLOBALS['qa_cache']['hashe_v1_update_' . $slug]['sha256'] = str_repeat( 'b', 64 );
+$GLOBALS['qa_cache']['hashe_v1_update_' . $slug]['release']['sha256'] = str_repeat( 'b', 64 );
 $bad = $client->verify_download( false, $manifest['package_url'], null, $extra );
 qa_assert( $bad instanceof WP_Error && $bad->code === 'hashe_fa7_checksum_failed', 'tampered ZIP blocked before installation' );
 qa_assert( ! file_exists( $GLOBALS['qa_deleted_file'] ), 'tampered ZIP file removed' );

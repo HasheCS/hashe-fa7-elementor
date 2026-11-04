@@ -5,7 +5,7 @@
  * The website-owned HP-WEB-001 approved-release feed is the sole authority.
  * This module never contacts a site-registration or analytics endpoint.
  */
-namespace Hashe\PluginTools\V1;
+namespace Hashe\FA7\PluginTools\V1;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -67,7 +67,7 @@ if ( ! class_exists( __NAMESPACE__ . '\\UpdateClient', false ) ) {
                     return false;
                 }
                 // Only validated, explicitly approved stable metadata is cached.
-                set_site_transient( $cache_key, $manifest, 6 * HOUR_IN_SECONDS );
+                set_site_transient( $cache_key, $manifest, 300 ); // Approved feed Cache-Control: 300 seconds.
             }
             if ( ! $this->valid_manifest( $manifest ) ||
                 version_compare( $manifest['version'], $installed, '<=' ) ) {
@@ -80,6 +80,7 @@ if ( ! class_exists( __NAMESPACE__ . '\\UpdateClient', false ) ) {
                 'version'      => $manifest['version'],
                 'url'          => $manifest['details_url'],
                 'package'      => $manifest['package_url'],
+                'requires'     => $manifest['requires_wordpress'],
                 'tested'       => $manifest['tested'],
                 'requires_php' => $manifest['requires_php'],
             );
@@ -138,14 +139,16 @@ if ( ! class_exists( __NAMESPACE__ . '\\UpdateClient', false ) ) {
         }
 
         private function valid_manifest( $m ) {
-            if ( ( $m['slug'] ?? null ) !== $this->slug ||
+            if ( ( $m['schema_version'] ?? null ) !== 1 ||
+                ( $m['plugin'] ?? null ) !== $this->slug ||
+                ( $m['slug'] ?? null ) !== $this->slug ||
                 ( $m['status'] ?? null ) !== 'stable' ||
                 ( $m['approved'] ?? null ) !== true ||
                 ( $m['prerelease'] ?? null ) !== false ) {
                 return false;
             }
 
-            foreach ( array( 'version', 'tag', 'sha256', 'package_url', 'details_url', 'tested', 'requires_php' ) as $key ) {
+            foreach ( array( 'version', 'new_version', 'tag', 'sha256', 'package_url', 'details_url', 'requires', 'requires_wordpress', 'tested', 'requires_php' ) as $key ) {
                 if ( ! isset( $m[ $key ] ) || ! is_string( $m[ $key ] ) ) {
                     return false;
                 }
@@ -154,7 +157,10 @@ if ( ! class_exists( __NAMESPACE__ . '\\UpdateClient', false ) ) {
             $ver = $m['version'];
             if ( ! preg_match( '/^[0-9]+\.[0-9]+\.[0-9]+$/D', $ver ) ||
                 $m['tag'] !== 'v' . $ver ||
+                $m['new_version'] !== $ver ||
+                $m['requires_wordpress'] !== $m['requires'] ||
                 ! preg_match( '/^[a-f0-9]{64}$/D', $m['sha256'] ) ||
+                ! preg_match( '/^[0-9]+\.[0-9]+(?:\.[0-9]+)?$/D', $m['requires_wordpress'] ) ||
                 ! preg_match( '/^[0-9]+\.[0-9]+(?:\.[0-9]+)?$/D', $m['requires_php'] ) ||
                 ! preg_match( '/^[0-9]+\.[0-9]+(?:\.[0-9]+)?$/D', $m['tested'] ) ) {
                 return false;
@@ -163,11 +169,22 @@ if ( ! class_exists( __NAMESPACE__ . '\\UpdateClient', false ) ) {
             // The only acceptable package is this repository's exact stable
             // GitHub release asset; never use a dynamic branch, prerelease
             // source archive, arbitrary host, or a redirect supplied by data.
-            $expected = 'https://github.com/HasheCS/' . $this->slug .
-                '/releases/download/v' . $ver . '/' . $this->slug . '-v' . $ver . '.zip';
-            if ( $m['package_url'] !== $expected ||
+            $asset_prefix = 'https://github.com/HasheCS/' . $this->slug .
+                '/releases/download/v' . $ver . '/';
+            if ( 0 !== strpos( $m['package_url'], $asset_prefix ) ) {
+                return false;
+            }
+            $asset = substr( $m['package_url'], strlen( $asset_prefix ) );
+            if ( ! preg_match( '/^[A-Za-z0-9][A-Za-z0-9._-]*\.zip$/D', $asset ) ||
                 $m['details_url'] !== 'https://github.com/HasheCS/' .
-                $this->slug . '/releases/tag/v' . $ver ) {
+                    $this->slug . '/releases/tag/v' . $ver ) {
+                return false;
+            }
+            // Bind the root manifest to the exact approved release asset identity.
+            if ( ! isset( $m['release'] ) || ! is_array( $m['release'] ) ||
+                ( $m['release']['tag'] ?? null ) !== $m['tag'] ||
+                ( $m['release']['asset_url'] ?? null ) !== $m['package_url'] ||
+                ( $m['release']['sha256'] ?? null ) !== $m['sha256'] ) {
                 return false;
             }
             return true;

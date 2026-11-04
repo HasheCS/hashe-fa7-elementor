@@ -18,16 +18,16 @@ require_once __DIR__ . '/includes/dynamic-family-provider.php';
 require_once __DIR__ . '/includes/custom-kit-icons.php';
 require_once __DIR__ . '/includes/hashe-core/v1/update-client.php';
 require_once __DIR__ . '/includes/hashe-core/v1/consent-client.php';
-( new \Hashe\PluginTools\V1\ConsentClient(
+( new \Hashe\FA7\PluginTools\V1\ConsentClient(
     'hashe-fa7-elementor',
     plugin_basename( __FILE__ )
 ) )->register();
 if ( function_exists( 'register_activation_hook' ) ) {
-    register_activation_hook( __FILE__, array( '\Hashe\PluginTools\V1\ConsentClient', 'on_activation' ) );
-    register_deactivation_hook( __FILE__, array( '\Hashe\PluginTools\V1\ConsentClient', 'on_deactivation' ) );
-    register_uninstall_hook( __FILE__, array( '\Hashe\PluginTools\V1\ConsentClient', 'on_uninstall' ) );
+    register_activation_hook( __FILE__, array( '\Hashe\FA7\PluginTools\V1\ConsentClient', 'on_activation' ) );
+    register_deactivation_hook( __FILE__, array( '\Hashe\FA7\PluginTools\V1\ConsentClient', 'on_deactivation' ) );
+    register_uninstall_hook( __FILE__, array( '\Hashe\FA7\PluginTools\V1\ConsentClient', 'on_uninstall' ) );
 }
-( new \Hashe\PluginTools\V1\UpdateClient(
+( new \Hashe\FA7\PluginTools\V1\UpdateClient(
     'hashe-fa7-elementor',
     plugin_basename( __FILE__ ),
     'https://plugins.hashe.com/hashe-fa7-elementor',

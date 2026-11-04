@@ -73,7 +73,7 @@ if ( wp_next_scheduled( 'hashe_fa7_optional_reporting_tick' ) ) {
 }
 wp_set_current_user( 1 );
 require_once ABSPATH . 'wp-admin/includes/template.php';
-$privacy_client = new \Hashe\PluginTools\V1\ConsentClient(
+$privacy_client = new \Hashe\FA7\PluginTools\V1\ConsentClient(
     'hashe-fa7-elementor',
     'hashe-fa7-elementor/hashe-fa7-elementor.php'
 );
