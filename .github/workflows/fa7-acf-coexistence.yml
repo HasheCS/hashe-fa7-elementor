@@ -92,10 +92,12 @@ jobs:
             php "$WP_BIN" plugin activate hashe-elementor-acf-editor --path="$WP_ROOT"
             FA7_COEXISTENCE_PHASE=both php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-coexistence-integration.php" --path="$WP_ROOT"
             echo 'STAGE=FA7_UNINSTALL_INDEPENDENCE'
+            php "$WP_BIN" plugin deactivate hashe-fa7-elementor --path="$WP_ROOT"
             php "$WP_BIN" plugin uninstall hashe-fa7-elementor --path="$WP_ROOT"
             FA7_COEXISTENCE_PHASE=after-fa7-uninstall php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-coexistence-integration.php" --path="$WP_ROOT"
             php "$WP_BIN" plugin install "$RUNNER_TEMP/hashe-fa7-elementor-v1.1.3-qa.zip" --activate --path="$WP_ROOT"
             echo 'STAGE=ACF_UNINSTALL_INDEPENDENCE'
+            php "$WP_BIN" plugin deactivate hashe-elementor-acf-editor --path="$WP_ROOT"
             php "$WP_BIN" plugin uninstall hashe-elementor-acf-editor --path="$WP_ROOT"
             FA7_COEXISTENCE_PHASE=after-acf-uninstall php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-coexistence-integration.php" --path="$WP_ROOT"
             echo 'REAL_BOTH_PLUGIN_COEXISTENCE=PASS EXIT=0'
