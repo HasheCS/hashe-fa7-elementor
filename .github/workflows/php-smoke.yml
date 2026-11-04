@@ -42,6 +42,20 @@ jobs:
           node-version: '20'
       - name: Release README and portable WordPress ZIP checks
         run: python3 tests/release-artifact.test.py
+      - name: Deterministic private development ZIP (not a release)
+        env:
+          TERM: xterm
+        shell: bash
+        run: |
+          ( clear
+            set -euo pipefail
+            python3 tools/build_fa7_candidate.py --output "$RUNNER_TEMP/fa7-first"
+            python3 tools/build_fa7_candidate.py --output "$RUNNER_TEMP/fa7-second"
+            (cd "$RUNNER_TEMP/fa7-first" && sha256sum --check SHA256SUMS.txt)
+            (cd "$RUNNER_TEMP/fa7-second" && sha256sum --check SHA256SUMS.txt)
+            cmp "$RUNNER_TEMP/fa7-first/hashe-fa7-elementor-v1.1.3-development.zip" "$RUNNER_TEMP/fa7-second/hashe-fa7-elementor-v1.1.3-development.zip"
+            echo "REPRODUCIBLE_DEVELOPMENT_ZIP=PASS"
+          )
       - name: Kit memory regression
         run: |
           node --check hashe-fa7-elementor/assets/js/editor-kit-memory.js
