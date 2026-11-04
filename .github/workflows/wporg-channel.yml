@@ -72,8 +72,11 @@ jobs:
             echo "STAGE=OFFICIAL_WORDPRESS_PLUGIN_CHECK"
             $WP plugin install plugin-check --activate --path="$ROOT"
             echo "PLUGIN_CHECK_TARGET=$ROOT/wp-content/plugins/hashe-fa7-elementor"
-            $WP plugin check "$ROOT/wp-content/plugins/hashe-fa7-elementor" --format=strict-table --path="$ROOT"
-            echo "PLUGIN_CHECK_STRICT=PASS"
+            $WP plugin check "$ROOT/wp-content/plugins/hashe-fa7-elementor" --format=csv --path="$ROOT" | tee "$RUNNER_TEMP/plugin-check.csv"
+            if grep -q ",ERROR," "$RUNNER_TEMP/plugin-check.csv"; then
+              echo "WORDPRESS_ORG_PLUGIN_CHECK_ERRORS_BLOCK_RELEASE"; exit 27
+            fi
+            echo "WORDPRESS_ORG_PLUGIN_CHECK_NO_ERRORS=PASS"
             $WP plugin deactivate hashe-fa7-elementor --path="$ROOT"
             $WP plugin uninstall hashe-fa7-elementor --path="$ROOT"
             if $WP plugin is-installed hashe-fa7-elementor --path="$ROOT"; then
