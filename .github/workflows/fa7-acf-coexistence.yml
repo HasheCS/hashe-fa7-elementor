@@ -10,6 +10,8 @@ jobs:
   coexistence:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    env:
+      TERM: xterm
     services:
       mysql:
         image: mysql:8.0
