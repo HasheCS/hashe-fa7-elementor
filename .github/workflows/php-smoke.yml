@@ -54,7 +54,8 @@ jobs:
             (cd "$RUNNER_TEMP/fa7-first" && sha256sum --check SHA256SUMS.txt)
             (cd "$RUNNER_TEMP/fa7-second" && sha256sum --check SHA256SUMS.txt)
             cmp "$RUNNER_TEMP/fa7-first/hashe-fa7-elementor-v1.1.3-development.zip" "$RUNNER_TEMP/fa7-second/hashe-fa7-elementor-v1.1.3-development.zip"
-            echo "REPRODUCIBLE_DEVELOPMENT_ZIP=PASS"
+            cmp "$RUNNER_TEMP/fa7-first/hashe-fa7-elementor-v1.1.3-wporg-development.zip" "$RUNNER_TEMP/fa7-second/hashe-fa7-elementor-v1.1.3-wporg-development.zip"
+            echo "REPRODUCIBLE_DUAL_CHANNEL_ZIPS=PASS"
           )
       - name: Kit memory regression
         run: |
