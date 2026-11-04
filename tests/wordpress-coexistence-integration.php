@@ -4,6 +4,7 @@ if ( ! defined( 'WP_CLI' ) || ! WP_CLI ) {
     fwrite( STDERR, "RUN_ONLY_IN_DISPOSABLE_WP_CLI\n" );
     exit( 2 );
 }
+require_once ABSPATH . 'wp-admin/includes/plugin.php';
 $phase = getenv( 'FA7_COEXISTENCE_PHASE' ) ?: 'both';
 $fa7 = 'hashe-fa7-elementor/hashe-fa7-elementor.php';
 $acf = 'hashe-elementor-acf-editor/hashe-elementor-acf-editor.php';
@@ -31,8 +32,12 @@ if ( 'both' === $phase ) {
     if ( $registered < 2 ) {
         WP_CLI::error( 'Two independent native update filters not registered' );
     }
-    if ( false !== get_option( 'hashe_fa7_optional_reporting_v1', false ) ||
-        false !== get_option( 'hashe_acf_optional_reporting_v1', false ) ) {
+    $fa7_state = get_option( 'hashe_fa7_optional_reporting_v1', false );
+    $acf_state = get_option( 'hashe_acf_optional_reporting_v1', false );
+    $acf_declined = is_array( $acf_state ) &&
+        ( $acf_state['status'] ?? '' ) === 'declined' &&
+        ( $acf_state['qa_marker'] ?? '' ) === 'acf-only-sentinel';
+    if ( false !== $fa7_state || ( false !== $acf_state && ! $acf_declined ) ) {
         WP_CLI::error( 'Consent was silently enabled or shared on activation' );
     }
     $tabs = apply_filters( 'elementor/icons_manager/additional_tabs', array() );
