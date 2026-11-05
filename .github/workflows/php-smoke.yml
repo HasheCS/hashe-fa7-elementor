@@ -31,6 +31,7 @@ jobs:
           php tests/custom-svg-classification.php
           php tests/hashe-update-client.test.php
           php tests/hashe-consent-client.test.php
+          php tests/site-proof.test.php
           php tests/hashe-client-namespace-coexistence.test.php legacy-first
           php tests/hashe-client-namespace-coexistence.test.php fa7-first
   editor-storage:
