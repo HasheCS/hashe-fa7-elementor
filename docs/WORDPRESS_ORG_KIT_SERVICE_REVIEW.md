@@ -1,6 +1,26 @@
-# WordPress.org review evidence: customer-configured Font Awesome Kit service
+# Font Awesome Kit: independent Hashe distribution and WordPress.org exclusion
 
-Status: **human reviewer decision required**. This document does not waive the failing Plugin Check rule or authorize directory submission.
+**Owner decision: November 6, 2026.** This plugin is distributed through
+approved independent Hashe/GitHub releases and plugins.hashe.com only.
+**Do not submit this plugin to the WordPress.org Plugin Directory.**
+
+The externally hosted, administrator-configured Font Awesome Kit service
+is an integral part of its licensed Pro/Pro Plus and custom-icon experience.
+The WordPress.org Plugin Check `OffloadedContent` finding is known and
+unresolved for directory admission. The owner has elected not to pursue
+directory admission rather than reduce or disguise Kit functionality.
+
+- This is a **distribution-channel exception** for Hashe Font Awesome for
+  Elementor only. It is not a claim of WordPress.org compliance.
+- The independent release remains subject to complete functional,
+  security, licensing, consent, update, compatibility, integrity and
+  rollback acceptance.
+- Do not suppress scanning results or weaken independent security tests.
+- Keep historic WordPress.org QA findings available as review evidence.
+- Do not create a WordPress.org submission, SVN deployment or directory
+  release unless the owner explicitly reverses this decision.
+
+## Historic WordPress.org review evidence (retained, not a launch gate)
 
 ## External service and purpose
 
