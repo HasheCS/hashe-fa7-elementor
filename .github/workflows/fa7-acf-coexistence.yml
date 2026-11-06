@@ -1,0 +1,104 @@
+name: FA7 and ACF independent-client coexistence QA
+on:
+  push:
+    branches: [release/v1.1.3-candidate]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  coexistence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TERM: xterm
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: qa_password_only
+          MYSQL_DATABASE: hashe_coexistence_qa
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -pqa_password_only"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pin the ACF draft to an immutable reviewed commit
+        uses: actions/checkout@v4
+        with:
+          repository: HasheCS/hashe-elementor-acf-editor
+          ref: f83e12813387b193715de2a6093de430e6c85d2f
+          path: acf-source
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, mysqli, curl, dom, zip, openssl
+          tools: none
+      - name: Prepare isolated WordPress, Elementor and ACF
+        shell: bash
+        run: |
+          ( clear
+            set -euo pipefail
+            echo 'STAGE=ISOLATED_DEPENDENCIES'
+            curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$RUNNER_TEMP/wp-cli.phar"
+            echo "WP_BIN=$RUNNER_TEMP/wp-cli.phar" >> "$GITHUB_ENV"
+            echo "WP_ROOT=$RUNNER_TEMP/wordpress" >> "$GITHUB_ENV"
+            php "$RUNNER_TEMP/wp-cli.phar" core download --path="$RUNNER_TEMP/wordpress" --version=7.1.4
+            php "$RUNNER_TEMP/wp-cli.phar" config create --path="$RUNNER_TEMP/wordpress" --dbname=hashe_coexistence_qa --dbuser=root --dbpass=qa_password_only --dbhost=127.0.0.1 --skip-check
+            php "$RUNNER_TEMP/wp-cli.phar" core install --path="$RUNNER_TEMP/wordpress" --url='http://localhost:8080' --title='Coexistence QA' --admin_user=qa_admin --admin_password=qa_dummy_only --admin_email=qa@example.invalid --skip-email
+            php "$RUNNER_TEMP/wp-cli.phar" plugin install elementor --activate --version=4.3.5 --path="$RUNNER_TEMP/wordpress"
+            php "$RUNNER_TEMP/wp-cli.phar" plugin install advanced-custom-fields --activate --path="$RUNNER_TEMP/wordpress"
+            echo 'ISOLATED_SETUP=PASS EXIT=0'
+          )
+      - name: Build both unpublished exact-source installable ZIPs
+        shell: bash
+        run: |
+          ( clear
+            set -euo pipefail
+            echo 'STAGE=PACKAGE_BOTH_CANDIDATES'
+            python3 tests/release-artifact.test.py
+            python3 - <<'PY'
+          from pathlib import Path
+          from zipfile import ZIP_DEFLATED, ZipFile
+          import os
+          root = Path('hashe-fa7-elementor')
+          target = Path(os.environ['RUNNER_TEMP']) / 'hashe-fa7-elementor-v1.1.3-qa.zip'
+          with ZipFile(target, 'w', ZIP_DEFLATED) as out:
+              for file in sorted(root.rglob('*')):
+                  if file.is_file():
+                      out.write(file, (Path('hashe-fa7-elementor') / file.relative_to(root)).as_posix())
+          with ZipFile(target) as archive:
+              assert archive.testzip() is None
+          print('FA7_CANDIDATE_ARCHIVE=PASS')
+          PY
+            python3 acf-source/tools/build_distributions.py --output "$RUNNER_TEMP/acf-build"
+            ( cd "$RUNNER_TEMP/acf-build" && sha256sum --check SHA256SUMS.txt )
+            echo 'BOTH_UNPUBLISHED_ARCHIVES_VALID=PASS EXIT=0'
+          )
+      - name: Install in both activation orders and verify uninstall isolation
+        shell: bash
+        run: |
+          ( clear
+            set -euo pipefail
+            echo 'STAGE=ACF_THEN_FA7'
+            php "$WP_BIN" plugin install "$RUNNER_TEMP/acf-build/hashe-elementor-acf-editor-v0.6.0.zip" --activate --path="$WP_ROOT"
+            php "$WP_BIN" plugin install "$RUNNER_TEMP/hashe-fa7-elementor-v1.1.3-qa.zip" --activate --path="$WP_ROOT"
+            FA7_COEXISTENCE_PHASE=both php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-coexistence-integration.php" --path="$WP_ROOT"
+            php "$WP_BIN" plugin deactivate hashe-fa7-elementor hashe-elementor-acf-editor --path="$WP_ROOT"
+            echo 'STAGE=FA7_THEN_ACF'
+            php "$WP_BIN" plugin activate hashe-fa7-elementor --path="$WP_ROOT"
+            php "$WP_BIN" plugin activate hashe-elementor-acf-editor --path="$WP_ROOT"
+            FA7_COEXISTENCE_PHASE=both php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-coexistence-integration.php" --path="$WP_ROOT"
+            echo 'STAGE=FA7_UNINSTALL_INDEPENDENCE'
+            php "$WP_BIN" plugin deactivate hashe-fa7-elementor --path="$WP_ROOT"
+            php "$WP_BIN" plugin uninstall hashe-fa7-elementor --path="$WP_ROOT"
+            FA7_COEXISTENCE_PHASE=after-fa7-uninstall php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-coexistence-integration.php" --path="$WP_ROOT"
+            php "$WP_BIN" plugin install "$RUNNER_TEMP/hashe-fa7-elementor-v1.1.3-qa.zip" --activate --path="$WP_ROOT"
+            echo 'STAGE=ACF_UNINSTALL_INDEPENDENCE'
+            php "$WP_BIN" plugin deactivate hashe-elementor-acf-editor --path="$WP_ROOT"
+            php "$WP_BIN" plugin uninstall hashe-elementor-acf-editor --path="$WP_ROOT"
+            FA7_COEXISTENCE_PHASE=after-acf-uninstall php "$WP_BIN" eval-file "$GITHUB_WORKSPACE/tests/wordpress-coexistence-integration.php" --path="$WP_ROOT"
+            echo 'REAL_BOTH_PLUGIN_COEXISTENCE=PASS EXIT=0'
+          )

@@ -2,18 +2,37 @@
 /**
  * Plugin Name: Hashe Font Awesome 7 Icon Library for Elementor
  * Description: Enhances Elementor's native icon picker with Font Awesome 7 catalogs, using styles supplied by the configured Font Awesome Kit.
- * Version: 1.1.2
- * Requires at least: 6.2
+ * Version: 1.1.3
+ * Requires at least: 6.8
  * Requires PHP: 7.4
  * Requires Plugins: elementor
  * Author: Hashe Computer Solutions
  * Author URI: https://hashe.com/
  * License: GPL-2.0-or-later
+ * Update URI: https://plugins.hashe.com/hashe-fa7-elementor
  * Text Domain: hashe-fa7-elementor
  */
 defined( 'ABSPATH' ) || exit;
 require_once __DIR__ . '/includes/catalog-provider.php';
 require_once __DIR__ . '/includes/dynamic-family-provider.php';
+require_once __DIR__ . '/includes/custom-kit-icons.php';
+require_once __DIR__ . '/includes/hashe-core/v1/update-client.php';
+require_once __DIR__ . '/includes/hashe-core/v1/consent-client.php';
+( new \Hashe\FA7\PluginTools\V1\ConsentClient(
+    'hashe-fa7-elementor',
+    plugin_basename( __FILE__ )
+) )->register();
+if ( function_exists( 'register_activation_hook' ) ) {
+    register_activation_hook( __FILE__, array( '\Hashe\FA7\PluginTools\V1\ConsentClient', 'on_activation' ) );
+    register_deactivation_hook( __FILE__, array( '\Hashe\FA7\PluginTools\V1\ConsentClient', 'on_deactivation' ) );
+    register_uninstall_hook( __FILE__, array( '\Hashe\FA7\PluginTools\V1\ConsentClient', 'on_uninstall' ) );
+}
+( new \Hashe\FA7\PluginTools\V1\UpdateClient(
+    'hashe-fa7-elementor',
+    plugin_basename( __FILE__ ),
+    'https://plugins.hashe.com/hashe-fa7-elementor',
+    'https://plugins.hashe.com/api/v1/updates/hashe-fa7-elementor'
+) )->register();
 
 /**
  * Register Kit-owned tabs through Elementor's additional_tabs API.
@@ -33,7 +52,7 @@ function hashe_fa7_additive_kit() {
         return false;
     }
 
-    $cache_key = 'hashe_fa7_additive_kit_v3_' . $id;
+    $cache_key = 'hashe_fa7_additive_kit_v5_' . $id;
     $cached = get_transient( $cache_key );
 
     // Re-check the active Kit's published revision during Elementor editor
@@ -44,7 +63,7 @@ function hashe_fa7_additive_kit() {
         did_action( 'elementor/editor/before_enqueue_scripts' ) ||
         doing_action( 'elementor/editor/before_enqueue_scripts' ) ||
         did_action( 'elementor/editor/after_enqueue_scripts' );
-    if ( ! $editor_reload && is_array( $cached ) && ! empty( $cached['styles'] ) ) {
+    if ( ! $editor_reload && is_array( $cached ) && ( ! empty( $cached['styles'] ) || ! empty( $cached['custom_icons']['fak'] ) || ! empty( $cached['custom_icons']['fakd'] ) ) ) {
         $memo = $cached;
         return $memo;
     }
@@ -78,6 +97,7 @@ function hashe_fa7_additive_kit() {
     }
 
     $styles = array();
+    $custom_icons = array( 'fak' => array(), 'fakd' => array() );
     $method = (string) ( $config['method'] ?? '' );
     $subset = (string) ( $config['subsetPath'] ?? '' );
 
@@ -90,10 +110,11 @@ function hashe_fa7_additive_kit() {
         'subsetPath' => $subset,
         'startupFilename' => (string) ( $config['startupFilename'] ?? '' ),
         'license' => (string) ( $config['license'] ?? '' ),
+        'iconUploads' => (array) ( $config['iconUploads'] ?? array() ),
     ) ) );
     if (
         is_array( $cached ) &&
-        ! empty( $cached['styles'] ) &&
+        ( ! empty( $cached['styles'] ) || ! empty( $cached['custom_icons']['fak'] ) || ! empty( $cached['custom_icons']['fakd'] ) ) &&
         ( $cached['revision'] ?? '' ) === $revision
     ) {
         $memo = $cached;
@@ -132,6 +153,35 @@ function hashe_fa7_additive_kit() {
             $styles = array_values( array_intersect( array_keys( $specs ), $allowed ) );
         }
     } elseif (
+        'js' === $method &&
+        preg_match( '~^assets/' . preg_quote( $id, '~' ) . '/[0-9]+/kit\.js$~D', $subset ) &&
+        is_array( $config['iconUploads'] ?? null )
+    ) {
+        // A subsetted SVG+JS Kit exposes a matching CSS selector map. Read
+        // only those custom names actually listed in this customer's Kit.
+        // Do NOT infer all Pro+ icons are included from its plan.
+        $css_path = substr( $subset, 0, -2 ) . 'css';
+        $css_response = wp_remote_get(
+            'https://ka-p.fontawesome.com/' . $css_path . '?token=' . $id,
+            $request
+        );
+        if ( ! is_wp_error( $css_response ) &&
+            200 === (int) wp_remote_retrieve_response_code( $css_response ) ) {
+            $css = (string) wp_remote_retrieve_body( $css_response );
+            if ( strlen( $css ) >= 20 && strlen( $css ) <= 2097152 ) {
+                $parsed = hashe_fa7_custom_icons_from_kit_css( $css );
+                $uploaded = array_fill_keys( array_keys( $config['iconUploads'] ), true );
+                foreach ( array( 'fak', 'fakd' ) as $family ) {
+                    $custom_icons[ $family ] = array_values( array_filter(
+                        $parsed[ $family ],
+                        static function ( $icon ) use ( $uploaded ) {
+                            return isset( $uploaded[ $icon ] );
+                        }
+                    ) );
+                }
+            }
+        }
+    } elseif (
         'css' === $method &&
         preg_match( '~^assets/' . preg_quote( $id, '~' ) . '/[0-9]+/kit\.css$~D', $subset )
     ) {
@@ -159,12 +209,25 @@ function hashe_fa7_additive_kit() {
         }
         $styles = array_keys( $styles );
     }
-    if ( ! $styles ) {
+    // Full SVG+JS Kits do not publish a companion kit.css. Check actual
+    // customer Kit upload SVGs for verified icon names and layer structure.
+    // These assets remain Font Awesome-hosted, not distributed by our plugin.
+    if ( 'js' === $method && '' === $subset &&
+        ! empty( $config['iconUploads'] ) && is_array( $config['iconUploads'] ) ) {
+        $custom_icons = hashe_fa7_custom_icons_from_full_js_kit(
+            $id, $config['iconUploads'], $request
+        );
+    }
+    if ( isset( $css ) && 'css' === $method && is_string( $css ) ) {
+        $custom_icons = hashe_fa7_custom_icons_from_kit_css( $css );
+    }
+    if ( ! $styles && ! array_filter( $custom_icons ) ) {
         return false; // Keep Elementor's existing integration unchanged.
     }
     $memo = array(
         'id' => $id, 'version' => $version, 'revision' => $revision,
         'styles' => $styles, 'method' => $method,
+        'custom_icons' => $custom_icons,
     );
     set_transient( $cache_key, $memo, HOUR_IN_SECONDS );
     return $memo;
@@ -174,15 +237,52 @@ function hashe_fa7_additive_kit() {
  * Kit libraries are distinct from Elementor Core/Pro native libraries.
  * They must appear BELOW My Libraries, never above it.
  */
+/**
+ * Render ONLY our free library classes using isolated Free 7 fonts.
+ * Legacy saved fas/far/fab values from v1.1.2 are normalized at render
+ * time without modifying the stored icon values or customer Kit assets.
+ */
+function hashe_fa7_render_namespaced_free_icon( $icon, $attributes = array(), $tag = 'i' ) {
+    $prefix_map = array(
+        'hashe-fa7-free-fas' => 'hfas',
+        'hashe-fa7-free-far' => 'hfar',
+        'hashe-fa7-free-fab' => 'hfab',
+    );
+    $library = (string) ( $icon['library'] ?? '' );
+    if ( ! isset( $prefix_map[ $library ] ) || ! is_array( $attributes ) ) {
+        return '';
+    }
+    $value = (string) ( $icon['value'] ?? '' );
+    if ( ! preg_match( '/^([a-z]+) fa-([a-z0-9][a-z0-9-]{0,100})$/D', $value, $matches ) ) {
+        return '';
+    }
+    $target = $prefix_map[ $library ];
+    if ( ! in_array( $matches[1], array( $target, substr( $target, 1 ) ), true ) ) {
+        return '';
+    }
+    // Restrict output to names from the plugin's official Free catalog.
+    $catalog = hashe_fa7_free_catalogs();
+    $source_prefix = substr( $target, 1 );
+    if ( ! in_array( $matches[2], $catalog[ $source_prefix ] ?? array(), true ) ) {
+        return '';
+    }
+    $classes = $attributes['class'] ?? array();
+    $classes = is_array( $classes ) ? $classes : array( $classes );
+    $classes[] = $target;
+    $classes[] = 'fa-' . $matches[2];
+    $attributes['class'] = $classes;
+    $tag = in_array( $tag, array( 'i', 'span' ), true ) ? $tag : 'i';
+    return '<' . $tag . ' ' . \Elementor\Utils::render_html_attributes( $attributes ) .
+        '></' . $tag . '>';
+}
 function hashe_fa7_register_kit_additional_tabs( $tabs ) {
     if ( ! is_array( $tabs ) ) {
         return $tabs;
     }
     $kit_id = trim( (string) get_option( 'elementor_font_awesome_pro_kit_id', '' ) );
-    if ( '' === $kit_id ) {
-        // Elementor's normal Free native libraries are untouched. Add our
-        // separate, licensed Font Awesome 7.3.1 Free icon catalogs below them.
-        $free = hashe_fa7_free_catalogs();
+    // Font Awesome 7 Free is bundled and licensed independently of the
+    // customer's Kit. Always register these three isolated free libraries.
+    $free = hashe_fa7_free_catalogs();
         foreach ( array(
             'fas' => 'Solid', 'far' => 'Regular', 'fab' => 'Brands',
         ) as $style => $name ) {
@@ -192,29 +292,31 @@ function hashe_fa7_register_kit_additional_tabs( $tabs ) {
             }
             $tabs[ $id ] = array(
                 'name'          => $id,
-                'label'         => 'Font Awesome Free - ' . $name,
-                'labelIcon'     => 'fab' === $style ? 'fab fa-font-awesome-flag' : $style . ' fa-flag',
+                'label'         => 'Font Awesome 7 Free - ' . $name,
+                'labelIcon'     => 'eicon-font-awesome',
                 'url'           => false,
                 'enqueue'       => false,
                 'prefix'        => 'fa-',
-                'displayPrefix' => $style,
+                'displayPrefix' => 'h' . $style,
                 'ver'           => '7.3.1',
                 'icons'         => $free[ $style ],
                 'native'        => false,
+                'render_callback' => 'hashe_fa7_render_namespaced_free_icon',
             );
         }
+    if ( '' === $kit_id ) {
         return $tabs;
     }
     $kit = hashe_fa7_additive_kit();
-    if ( ! $kit || empty( $kit['styles'] ) ) {
+    if ( ! $kit || ( empty( $kit['styles'] ) && empty( $kit['custom_icons']['fak'] ) && empty( $kit['custom_icons']['fakd'] ) ) ) {
         // Configured but invalid/unreachable Kits are not secretly treated
         // as Free: Elementor Pro still owns its configured Kit integration.
         return $tabs;
     }
     $specs = hashe_fa7_additive_specs( $kit['version'] );
-    $names = hashe_fa7_public_catalogs( $kit['version'] );
-    if ( ! $names ) {
-        return $tabs; // No invented Pro libraries if API/cache unavailable.
+    $names = ! empty( $kit['styles'] ) ? hashe_fa7_public_catalogs( $kit['version'] ) : array();
+    if ( ! is_array( $names ) ) {
+        $names = array(); // Do not block Kit-owned icons during metadata outages.
     }
     foreach ( $kit['styles'] as $style ) {
         if ( ! isset( $specs[ $style ] ) ) {
@@ -249,6 +351,26 @@ function hashe_fa7_register_kit_additional_tabs( $tabs ) {
             'ver'           => $kit['version'],
             'icons'         => $icons,
             'native'        => false,
+        );
+    }
+    // Kit custom icons are distinct from publicly released official catalogs.
+    foreach ( array( 'fak' => 'Custom Icons', 'fakd' => 'Custom Duotone Icons' ) as $style => $label ) {
+        $icons = $kit['custom_icons'][ $style ] ?? array();
+        $id = 'hashe-fa7-kit-' . $style;
+        if ( empty( $icons ) || isset( $tabs[ $id ] ) ) {
+            continue;
+        }
+        $tabs[ $id ] = array(
+            'name' => $id,
+            'label' => 'Font Awesome Kit - ' . $label,
+            'labelIcon' => 'eicon-font-awesome',
+            'url' => false,
+            'enqueue' => false,
+             'prefix' => 'fa-',
+            'displayPrefix' => $style,
+           'ver' => $kit['version'],
+             'icons' => $icons,
+           'native' => false,
         );
     }
     return $tabs;
@@ -286,7 +408,7 @@ function hashe_fa7_sync_native_tabs_to_kit( $tabs ) {
         return $tabs;
     }
     $kit = hashe_fa7_additive_kit();
-    if ( ! is_array( $kit ) || empty( $kit['styles'] ) ) {
+    if ( ! is_array( $kit ) || ( empty( $kit['styles'] ) && empty( $kit['custom_icons']['fak'] ) && empty( $kit['custom_icons']['fakd'] ) ) ) {
         return $tabs; // Unreachable/invalid Kit: do not infer entitlement.
     }
     $available = array_fill_keys( $kit['styles'], true );
@@ -438,6 +560,21 @@ add_action( 'elementor/editor/after_enqueue_styles', 'hashe_fa7_supply_standard_
  * Elementor Pro's existing integration owns font loading when any Kit ID is
  * present; we never inject Free CSS that could masquerade as Kit entitlement.
  */
+/**
+ * One small, scoped Free stylesheet for all Kit modes. Independent hfas,
+ * hfar, hfab selectors and @font-face names never override Kit styles.
+ * Only Elementor editor/frontend receive the asset, not ordinary WP admin.
+ */
+function hashe_fa7_enqueue_scoped_free_assets() {
+    wp_enqueue_style(
+        'hashe-fa7-scoped-free',
+        plugins_url( 'assets/css/hashe-fa7-free-scoped.css', __FILE__ ),
+        array(),
+        '1.1.3'
+    );
+}
+add_action( 'elementor/editor/after_enqueue_styles', 'hashe_fa7_enqueue_scoped_free_assets', 125 );
+add_action( 'elementor/frontend/after_enqueue_styles', 'hashe_fa7_enqueue_scoped_free_assets', 125 );
 function hashe_fa7_enqueue_no_kit_free_assets() {
     if ( '' !== trim( (string) get_option( 'elementor_font_awesome_pro_kit_id', '' ) ) ) {
         return;

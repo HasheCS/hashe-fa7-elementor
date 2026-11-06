@@ -1,0 +1,113 @@
+name: Publish approved independent Font Awesome 7 release
+
+# Independent Hashe/GitHub publication ONLY. The WordPress.org submission,
+# including external Font Awesome Kit compliance review, is separate.
+# Never publish just because a tag was pushed.
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Existing reviewed annotated stable tag, e.g. v1.1.3"
+        required: true
+        type: string
+      explicit_approval:
+        description: "Type PUBLISH-APPROVED-HASHE-FA7 after owner authorization and release QA"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  independent-stable:
+    name: Verify and publish one immutable Hashe FA7 release
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify reviewed tagged main and publication approval
+        shell: bash
+        env:
+          TAG: ${{ inputs.release_tag }}
+          APPROVAL: ${{ inputs.explicit_approval }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$APPROVAL" == 'PUBLISH-APPROVED-HASHE-FA7' ]] || { echo 'Missing explicit approved release input'; exit 2; }
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo 'Only stable SemVer tags permitted'; exit 2; }
+          git show-ref --verify --quiet "refs/tags/$TAG" || { echo 'Existing reviewed tag required'; exit 3; }
+          [[ "$(git cat-file -t "refs/tags/$TAG")" == 'tag' ]] || { echo 'Annotated tag required'; exit 3; }
+          [[ "$(git rev-list -n 1 "$TAG")" == "$GITHUB_SHA" ]] || { echo 'Tag must match protected main HEAD'; exit 3; }
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo 'Cannot overwrite an existing published GitHub release'
+            exit 4
+          fi
+          echo "VERIFIED_TAG=$TAG"
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: none
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Mandatory current-source functional and release regressions
+        shell: bash
+        env:
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          for file in hashe-fa7-elementor/hashe-fa7-elementor.php hashe-fa7-elementor/includes/catalog-provider.php hashe-fa7-elementor/includes/dynamic-family-provider.php hashe-fa7-elementor/includes/custom-kit-icons.php hashe-fa7-elementor/includes/hashe-core/v1/update-client.php hashe-fa7-elementor/includes/hashe-core/v1/consent-client.php; do
+            php -l "$file"
+          done
+          for scenario in no-kit invalid-kit css-small css-mixed full-pro full-plus css-stale css-api-offline full-plus-custom css-mixed-custom; do
+            php tests/smoke.php "$scenario"
+          done
+          php tests/custom-svg-classification.php
+          php tests/hashe-update-client.test.php
+          php tests/hashe-consent-client.test.php
+          php tests/site-proof.test.php
+          php tests/hashe-client-namespace-coexistence.test.php legacy-first
+          php tests/hashe-client-namespace-coexistence.test.php fa7-first
+          node --check hashe-fa7-elementor/assets/js/editor-kit-memory.js
+          node tests/editor-kit-memory.test.cjs
+          python3 tests/release-artifact.test.py
+          VERSION="${TAG#v}"
+          grep -Fq " * Version: $VERSION" hashe-fa7-elementor/hashe-fa7-elementor.php
+          grep -Fq "Stable tag: $VERSION" hashe-fa7-elementor/readme.txt
+
+      - name: Build exact immutable independent release ZIP
+        shell: bash
+        env:
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          set -euo pipefail
+          python3 tools/build_fa7_candidate.py --output dist-release
+          (cd dist-release && sha256sum --check SHA256SUMS.txt)
+          SOURCE="dist-release/hashe-fa7-elementor-$TAG-development.zip"
+          FINAL="dist-release/hashe-fa7-elementor-$TAG.zip"
+          test -f "$SOURCE"
+          mv "$SOURCE" "$FINAL"
+          unzip -tq "$FINAL"
+          unzip -Z1 "$FINAL" | grep -Fxq 'hashe-fa7-elementor/hashe-fa7-elementor.php'
+          unzip -Z1 "$FINAL" | grep -Fxq 'hashe-fa7-elementor/includes/hashe-core/v1/update-client.php'
+          unzip -Z1 "$FINAL" | grep -Fxq 'hashe-fa7-elementor/includes/hashe-core/v1/consent-client.php'
+          (cd dist-release && sha256sum "hashe-fa7-elementor-$TAG.zip" > INDEPENDENT-SHA256SUMS.txt)
+          echo 'FINAL_INDEPENDENT_ZIP_VERIFIED=PASS'
+
+      - name: Publish only the approved independent ZIP (manual dispatch)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            dist-release/hashe-fa7-elementor-${{ inputs.release_tag }}.zip
+            dist-release/INDEPENDENT-SHA256SUMS.txt

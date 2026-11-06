@@ -1,0 +1,80 @@
+name: WordPress Plugin Check security and quality audit
+on:
+  push:
+    branches: [release/v1.1.3-candidate]
+  workflow_dispatch:
+jobs:
+  static-plugin-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: qa_only
+          MYSQL_DATABASE: fa7_pcp
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -pqa_only"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mysqli, mbstring, dom, curl, zip, openssl
+          tools: none
+          coverage: none
+      - name: Install isolated WordPress with Plugin Check
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$RUNNER_TEMP/wp-cli.phar"
+          echo "WP_BIN=$RUNNER_TEMP/wp-cli.phar" >> "$GITHUB_ENV"
+          echo "WP_ROOT=$RUNNER_TEMP/wp" >> "$GITHUB_ENV"
+          php "$RUNNER_TEMP/wp-cli.phar" core download --path="$RUNNER_TEMP/wp"
+          php "$RUNNER_TEMP/wp-cli.phar" config create --path="$RUNNER_TEMP/wp" --dbname=fa7_pcp --dbuser=root --dbpass=qa_only --dbhost=127.0.0.1 --skip-check
+          php "$RUNNER_TEMP/wp-cli.phar" core install --path="$RUNNER_TEMP/wp" --url='http://localhost:8090' --title='Plugin Quality QA' --admin_user=qa --admin_password=qa_only --admin_email=qa@example.invalid --skip-email
+          php "$RUNNER_TEMP/wp-cli.phar" plugin install elementor --activate --version=4.3.5 --path="$RUNNER_TEMP/wp"
+          cp -a hashe-fa7-elementor "$RUNNER_TEMP/wp/wp-content/plugins/"
+          php "$RUNNER_TEMP/wp-cli.phar" plugin activate hashe-fa7-elementor --path="$RUNNER_TEMP/wp"
+          php "$RUNNER_TEMP/wp-cli.phar" plugin install plugin-check --activate --path="$RUNNER_TEMP/wp"
+      - name: Run WordPress Plugin Check diagnostics without hiding findings
+        shell: bash
+        run: |
+          set -uo pipefail
+          php "$WP_BIN" plugin check hashe-fa7-elementor --format=json --mode=update --path="$WP_ROOT" \
+            > "$GITHUB_WORKSPACE/plugin-check-findings.json" \
+            2> "$GITHUB_WORKSPACE/plugin-check-stderr.txt"
+          rc=$?
+          echo "PLUGIN_CHECK_EXIT_CODE=$rc"
+          echo "PLUGIN_CHECK_JSON_BYTES=$(wc -c < plugin-check-findings.json)"
+          echo '=== Summary ==='
+          python3 - <<'PY'
+          import json
+          from collections import Counter
+          from pathlib import Path
+          p=Path('plugin-check-findings.json')
+          try:
+              data=json.loads(p.read_text())
+          except Exception as exc:
+              print('PLUGIN_CHECK_OUTPUT_PARSE_ERROR='+str(exc))
+              print(p.read_text()[:2500])
+          else:
+              rows=data if isinstance(data,list) else data.get('results',[]) if isinstance(data,dict) else []
+              print('TOTAL_FINDINGS='+str(len(rows)))
+              counts=Counter(str(x.get('type','unknown')) for x in rows if isinstance(x,dict))
+              print('BY_TYPE='+str(dict(counts)))
+              for item in rows[:60]:
+                  if isinstance(item,dict):
+                      print('FINDING='+str({k:item.get(k) for k in ('type','code','file','line','message')}))
+          PY
+          cat plugin-check-stderr.txt | tail -50
+          exit 0
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fa7-pvp-plugin-check-findings
+          path: |
+            plugin-check-findings.json
+            plugin-check-stderr.txt
+          retention-days: 30

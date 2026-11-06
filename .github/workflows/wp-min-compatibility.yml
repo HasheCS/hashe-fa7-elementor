@@ -1,0 +1,54 @@
+name: Declared minimum WordPress and PHP compatibility
+on:
+  push:
+    branches: [release/v1.1.3-candidate]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  min-wp:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      TERM: xterm
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: qa_password_only
+          MYSQL_DATABASE: fa7_minimum_qa
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h localhost -u root -pqa_password_only"
+          --health-interval=10s --health-timeout=5s --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          extensions: mysqli, curl, dom, zip, openssl, mbstring
+          tools: none
+      - name: Install at declared minimum and verify offline features
+        shell: bash
+        run: |
+          ( clear
+            set -euo pipefail
+            echo 'STAGE=MINIMUM_WORDPRESS_PHP_ACCEPTANCE'
+            curl -fsSL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$RUNNER_TEMP/wp-cli.phar"
+            WP="php $RUNNER_TEMP/wp-cli.phar"
+            ROOT="$RUNNER_TEMP/wordpress"
+            $WP core download --path="$ROOT" --version=6.8
+            $WP config create --path="$ROOT" --dbname=fa7_minimum_qa --dbuser=root --dbpass=qa_password_only --dbhost=127.0.0.1 --skip-check
+            $WP core install --path="$ROOT" --url='http://localhost:8080' --title='FA7 minimum QA' --admin_user=qa_admin --admin_password=qa_dummy_only --admin_email=qa@example.invalid --skip-email
+            $WP plugin install elementor --activate --version=4.3.5 --path="$ROOT"
+            python3 tools/build_fa7_candidate.py --output "$RUNNER_TEMP/dist"
+            (cd "$RUNNER_TEMP/dist" && sha256sum --check SHA256SUMS.txt)
+            $WP plugin install "$RUNNER_TEMP/dist/hashe-fa7-elementor-v1.1.3-development.zip" --activate --path="$ROOT"
+            $WP eval-file "$GITHUB_WORKSPACE/tests/wordpress-live-integration.php" --path="$ROOT"
+            $WP plugin deactivate hashe-fa7-elementor --path="$ROOT"
+            $WP plugin uninstall hashe-fa7-elementor --path="$ROOT"
+            echo 'WP_6_8_AND_PHP_7_4_DECLARED_FLOOR=PASS'
+            echo 'STAGE_EXIT=0'
+          )

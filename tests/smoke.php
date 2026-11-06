@@ -7,7 +7,7 @@ define('MINUTE_IN_SECONDS', 60);
 define('ELEMENTOR_ASSETS_URL', 'https://example.test/elementor/assets/');
 define('ELEMENTOR_VERSION', '4.3.5');
 $case=$argv[1]??'no-kit';
-$valid=array('no-kit','invalid-kit','css-small','css-mixed','full-pro','full-plus','css-stale','css-api-offline');
+$valid=array('no-kit','invalid-kit','css-small','css-mixed','full-pro','full-plus','full-plus-custom','css-stale','css-mixed-custom','css-api-offline');
 if(!in_array($case,$valid,true)){fwrite(STDERR,"UNKNOWN_CASE\n");exit(2);}
 $GLOBALS['case']=$case;
 $GLOBALS['kit_id']='no-kit'===$case?'':('invalid-kit'===$case?'invalid-id':'0123456789');
@@ -15,6 +15,7 @@ $GLOBALS['filters']=array();$GLOBALS['actions']=array();$GLOBALS['styles']=array
 $GLOBALS['scripts']=array();$GLOBALS['transients']=array();$GLOBALS['options']=array();$GLOBALS['requests']=array();
 $GLOBALS['frontend']=false;
 function check($yes,$why){if(!$yes){fwrite(STDERR,"FAIL $why\n");exit(3);}}
+function plugin_basename($file){return 'hashe-fa7-elementor/hashe-fa7-elementor.php';}
 function add_filter($hook,$fn,$priority=10){$GLOBALS['filters'][$hook][]=array($priority,$fn);}
 function add_action($hook,$fn,$priority=10){$GLOBALS['actions'][$hook][]=array($priority,$fn);}
 function apply_filters($hook,$value){$f=$GLOBALS['filters'][$hook]??array();usort($f,function($a,$b){return $a[0]<=>$b[0];});foreach($f as $row)$value=call_user_func($row[1],$value);return $value;}
@@ -33,7 +34,7 @@ function wp_json_encode($v){return json_encode($v);}
 function is_wp_error($r){return false;}
 function wp_remote_retrieve_response_code($r){return $r['code'];}
 function wp_remote_retrieve_body($r){return $r['body'];}
-function plugins_url($path,$file){return 'https://example.test/plugins/hashe-fa7-elementor/'.$path;}
+function plugins_url($path,$file){return 'https://example.test/plugi../'.$path;}
 function wp_enqueue_style($name,$url=null,$deps=array(),$version=''){$GLOBALS['styles'][$name]=$url;}
 function wp_register_style($name,$url=null,$deps=array(),$version=''){$GLOBALS['styles'][$name]=$url;}
 function wp_add_inline_style($name,$content){$GLOBALS['inline'][$name]=($GLOBALS['inline'][$name]??'').$content;return true;}
@@ -53,9 +54,15 @@ function response($status,$data){return array('code'=>$status,'body'=>is_string(
 function wp_remote_get($url,$args=array()){
  $GLOBALS['requests'][]=$url;$case=$GLOBALS['case'];$id='0123456789';
  if(strpos($url,'https://kit.fontawesome.com/'.$id.'.js')===0){
-  $full=in_array($case,array('full-pro','full-plus'),true);
+  $full=in_array($case,array('full-pro','full-plus','full-plus-custom'),true);
   $config=array('token'=>$id,'version'=>'7.3.1','method'=>$full?'js':'css','license'=>'pro',
-   'subsetPath'=>$full?'':'assets/'.$id.'/111/kit.css','startupFilename'=>$full?($case==='full-plus'?'pro-plus.min.js':'pro.min.js'):'');
+   'subsetPath'=>$full?'':'assets/'.$id.'/111/kit.css','startupFilename'=>$full?(in_array($case,array('full-plus','full-plus-custom'),true)?'pro-plus.min.js':'pro.min.js'):'');
+  if(in_array($case,array('full-plus-custom','css-mixed-custom'),true)){
+    $config['iconUploads']=array('test-custom-logo'=>array('u'=>'e003','v'=>1));
+    if('full-plus-custom'===$case){
+        $config['iconUploads']['test-custom-layered']=array('u'=>'e004','v'=>2);
+    }
+  }
   return response(200,'window.FontAwesomeKitConfig='.json_encode($config).';');
  }
  if(strpos($url,'https://api.fontawesome.com/releases/7.3.1/family-styles')===0)return response(200,array('familyStyles'=>family_rows()));
@@ -67,8 +74,17 @@ function wp_remote_get($url,$args=array()){
  }
  if(strpos($url,'https://ka-p.fontawesome.com/assets/'.$id.'/111/kit.css')===0){
   $css='url("pro-fa-jelly-regular-400-0.woff2") url("pro-fa-notdog-solid-900-0.woff2") url("pro-fa-slab-duo-regular-400-0.woff2")';
-  if('css-mixed'===$case)$css.=' url("pro-fa-light-300-0.woff2") url("pro-fa-duotone-solid-900-0.woff2")';
+  if(in_array($case,array('css-mixed','css-mixed-custom'),true))$css.=' url("pro-fa-light-300-0.woff2") url("pro-fa-duotone-solid-900-0.woff2")';
+  if('css-mixed-custom'===$case)$css.='@font-face{font-family:"Font Awesome Kit";src:url(custom.woff2)}.fa-kit.fa-test-custom-logo::before{--fa:"\\e003"}';
   return response(200,$css);
+ }
+ if(strpos($url,'https://kit-uploads.fontawesome.com/'.$id.'/icons/')===0 &&
+    'full-plus-custom'===$case){
+    $duo=strpos($url,'test-custom-layered-2.svg')!==false;
+    $svg=$duo ?
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path opacity=".4" d="M0 0h50v50z"/><path d="M25 25h20v20z"/></svg>' :
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><path d="M0 0h50v50z"/></svg>';
+    return response(200,$svg);
  }
  if(strpos($url,'https://ka-p.fontawesome.com/releases/v7.3.1/js/')===0)return response(200,str_repeat('X',60000));
  if(strpos($url,'https://api.fontawesome.com/releases/7.3.1/icons-minimal')===0){
@@ -102,15 +118,18 @@ foreach(array('fa-regular'=>'far','fa-solid'=>'fas','fa-brands'=>'fab') as $tab=
 }
 check(isset($native['fa-light'])===(in_array('fal',$styles,true)||'invalid-kit'===$case),'native Light entitlement');
 check(isset($native['fa-duotone'])===(in_array('fad',$styles,true)||'invalid-kit'===$case),'native Duotone entitlement');
-$expected=array();
-if('no-kit'===$case)$expected=array('hashe-fa7-free-fas','hashe-fa7-free-far','hashe-fa7-free-fab');
-elseif($kit)foreach($styles as $p)if(!in_array($p,array('fas','far','fab','fal','fad'),true))$expected[]='hashe-fa7-kit-'.$p;
-if('css-api-offline'===$case)$expected=array();
+$expected=array('hashe-fa7-free-fas','hashe-fa7-free-far','hashe-fa7-free-fab');
+if($kit)foreach($styles as $p)if(!in_array($p,array('fas','far','fab','fal','fad'),true))$expected[]='hashe-fa7-kit-'.$p;
+if('css-api-offline'===$case)$expected=array('hashe-fa7-free-fas','hashe-fa7-free-far','hashe-fa7-free-fab');
+if(in_array($case,array('full-plus-custom','css-mixed-custom'),true))$expected[]='hashe-fa7-kit-fak';
+if('full-plus-custom'===$case)$expected[]='hashe-fa7-kit-fakd';
 sort($expected);$actual=array_keys($added);sort($actual);
-check($actual===$expected,'additional library membership');
-foreach($added as $id=>$tab){check(count($tab['icons'])>0,'nonempty icon tab');foreach($tab['icons'] as $n)check(is_string($n),'numeric icon names are strings');if(strpos($id,'hashe-fa7-kit-')===0)check(in_array('0',$tab['icons'],true),'numeric 0 preserved');}
+if($actual!==$expected){echo 'EXPECTED_LIBRARIES='.json_encode($expected).PHP_EOL;echo 'ACTUAL_LIBRARIES='.json_encode($actual).PHP_EOL;echo 'KIT_STATE='.json_encode($kit).PHP_EOL;}check($actual===$expected,'additional library membership');
+foreach($added as $id=>$tab){check(count($tab['icons'])>0,'nonempty icon tab');foreach($tab['icons'] as $n)check(is_string($n),'numeric icon names are strings');if(strpos($id,'hashe-fa7-kit-')===0 && !in_array($id,array('hashe-fa7-kit-fak','hashe-fa7-kit-fakd'),true))check(in_array('0',$tab['icons'],true),'numeric 0 preserved');}
 if('full-pro'===$case)check(count($styles)===7,'dynamic Pro collection');
-if('full-plus'===$case)check(count($styles)===10,'dynamic Pro Plus collection');
+if(in_array($case,array('full-plus','full-plus-custom'),true))check(count($styles)===10,'dynamic Pro Plus collection');
+if(in_array($case,array('full-plus-custom','css-mixed-custom'),true))check(($kit['custom_icons']['fak']??array())===array('test-custom-logo'),'mixed Kit custom icon retained');
+if('full-plus-custom'===$case)check(($kit['custom_icons']['fakd']??array())===array('test-custom-layered'),'full Kit layered icon discovered');
 if('css-stale'===$case)check(!in_array('fas',$styles,true)&&in_array('fajr',$styles,true),'republished Kit invalidates stale inventory');
 if('no-kit'!==$case&&$kit){
  hashe_fa7_enqueue_native_core_free_fallback();
@@ -124,5 +143,5 @@ check(strpos(implode(' ',$GLOBALS['requests']),'/webfonts/pro-fa-')===false,'no 
 $GLOBALS['frontend']=true;
 $front=apply_filters('elementor/icons_manager/native',$base);
 if('no-kit'!==$case)check(isset($front['fa-light'])&&isset($front['fa-duotone']),'saved frontend native references retained');
-check(!is_file(__DIR__.'/../hashe-fa7-elementor/data/native-pro-unicode.json'),'no bundled Pro map');
+check(!is_file(__DIR__.'/../data/native-pro-unicode.json'),'no bundled Pro map');
 echo 'PASS '.$case.': native tabs, dynamically licensed Kit styles, Free fallback and saved icon references'.PHP_EOL;

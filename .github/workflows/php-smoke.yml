@@ -1,4 +1,4 @@
-name: Release compliance and regression tests
+name: PHP and editor storage regression tests
 on:
   push:
   pull_request:
@@ -20,11 +20,20 @@ jobs:
           php -l hashe-fa7-elementor/hashe-fa7-elementor.php
           php -l hashe-fa7-elementor/includes/catalog-provider.php
           php -l hashe-fa7-elementor/includes/dynamic-family-provider.php
+          php -l hashe-fa7-elementor/includes/custom-kit-icons.php
+          php -l hashe-fa7-elementor/includes/hashe-core/v1/update-client.php
+          php -l hashe-fa7-elementor/includes/hashe-core/v1/consent-client.php
       - name: Test Free, CSS Kits, full JS Kits, version, API fallback and license gates
         run: |
-          for scenario in no-kit invalid-kit css-small css-mixed full-pro full-plus css-stale css-api-offline; do
+          for scenario in no-kit invalid-kit css-small css-mixed full-pro full-plus css-stale css-api-offline full-plus-custom css-mixed-custom; do
             php tests/smoke.php "$scenario"
           done
+          php tests/custom-svg-classification.php
+          php tests/hashe-update-client.test.php
+          php tests/hashe-consent-client.test.php
+          php tests/site-proof.test.php
+          php tests/hashe-client-namespace-coexistence.test.php legacy-first
+          php tests/hashe-client-namespace-coexistence.test.php fa7-first
   editor-storage:
     runs-on: ubuntu-latest
     steps:
@@ -32,6 +41,23 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Release README and portable WordPress ZIP checks
+        run: python3 tests/release-artifact.test.py
+      - name: Deterministic private development ZIP (not a release)
+        env:
+          TERM: xterm
+        shell: bash
+        run: |
+          ( clear
+            set -euo pipefail
+            python3 tools/build_fa7_candidate.py --output "$RUNNER_TEMP/fa7-first"
+            python3 tools/build_fa7_candidate.py --output "$RUNNER_TEMP/fa7-second"
+            (cd "$RUNNER_TEMP/fa7-first" && sha256sum --check SHA256SUMS.txt)
+            (cd "$RUNNER_TEMP/fa7-second" && sha256sum --check SHA256SUMS.txt)
+            cmp "$RUNNER_TEMP/fa7-first/hashe-fa7-elementor-v1.1.3-development.zip" "$RUNNER_TEMP/fa7-second/hashe-fa7-elementor-v1.1.3-development.zip"
+            cmp "$RUNNER_TEMP/fa7-first/hashe-fa7-elementor-v1.1.3-wporg-development.zip" "$RUNNER_TEMP/fa7-second/hashe-fa7-elementor-v1.1.3-wporg-development.zip"
+            echo "REPRODUCIBLE_DUAL_CHANNEL_ZIPS=PASS"
+          )
       - name: Kit memory regression
         run: |
           node --check hashe-fa7-elementor/assets/js/editor-kit-memory.js
