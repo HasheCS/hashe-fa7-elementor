@@ -1,8 +1,8 @@
 name: WordPress.org channel isolated acceptance
+# Owner elected independent Hashe/GitHub distribution only on 2026-11-06.
+# Preserve this historic directory-policy audit as manual evidence; it is not
+# an automatic release gate or a claim of WordPress.org compatibility.
 on:
-  push:
-    branches: [release/v1.1.3-candidate]
-  pull_request:
   workflow_dispatch:
 permissions:
   contents: read
